@@ -1,3 +1,5 @@
+# Contenido de tu archivo .gitignore
+
 # Ignorar el archivo de configuración con credenciales
 config.py
 
@@ -8,3 +10,6 @@ venv/
 # Ignorar archivos de caché de Python
 __pycache__/
 *.pyc
+
+# Ignorar la carpeta de secretos locales
+.streamlit/
