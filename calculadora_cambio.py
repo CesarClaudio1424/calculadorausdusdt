@@ -4,13 +4,11 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import pandas as pd
 
-# --- Importar credenciales y ID desde el archivo de configuración ---
-# Este try/except permite que la app funcione en local (con config.py)
-# y en Streamlit Cloud (con st.secrets)
+# --- Importar credenciales (solo para entorno local) ---
 try:
     from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
 except ImportError:
-    # Si config.py no existe, se asumirá que estamos en la nube
+    # No hacer nada si no existe, se asumirá que estamos en la nube
     pass
 
 # --- FUNCIONES DE CONEXIÓN Y DATOS ---
@@ -67,6 +65,28 @@ def get_client_data(_gsheet_client, spreadsheet_id):
     except Exception as e:
         st.error(f"No se pudo cargar la lista de clientes: {e}")
         return pd.DataFrame()
+
+def update_client_balance(_gsheet_client, spreadsheet_id, client_alias, new_usdt, new_mxn):
+    """Encuentra un cliente en la hoja 'Clientes' y actualiza sus saldos."""
+    try:
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("Clientes")
+        
+        cell = worksheet.find(client_alias, in_column=2) # Asume que 'Alias Cliente' es la columna B
+        if cell is None:
+            st.warning(f"No se pudo encontrar al cliente '{client_alias}' para actualizar su saldo.")
+            return False
+
+        headers = worksheet.row_values(1)
+        usdt_col = headers.index("Saldo USDT") + 1
+        mxn_col = headers.index("Saldo MXN") + 1
+        
+        worksheet.update_cell(cell.row, mxn_col, new_mxn)
+        worksheet.update_cell(cell.row, usdt_col, new_usdt)
+        return True
+    except Exception as e:
+        st.warning(f"Se guardaron las transacciones, pero hubo un error al actualizar el saldo del cliente: {e}")
+        return False
 
 # --- FUNCIONES DE LA INTERFAZ ---
 
@@ -238,8 +258,8 @@ def main():
     recibir_usdt_sum = sum(d['usdt_recibir'] for d in all_rows_data)
     cobrar_pesos_sum = sum(d['pesos_cobrar'] for d in all_rows_data)
     entregar_usdt_sum = sum(d['usdt_entregar'] for d in all_rows_data)
-    ajuste_neto_pesos = sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'MXN') - sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'MXN')
-    ajuste_neto_usdt = sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'USDT') - sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'USDT')
+    ajuste_neto_pesos = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'MXN') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'MXN')
+    ajuste_neto_usdt = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'USDT') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'USDT')
     
     st.subheader("Totales Consolidados 🧮")
     total_recibidos_usdt_final = recibir_usdt_sum + (balance_inicial_usdt if balance_inicial_usdt > 0 else 0) + (ajuste_neto_usdt if ajuste_neto_usdt > 0 else 0)
@@ -253,20 +273,25 @@ def main():
         st.metric(label="TOTAL USDT ENTREGADOS (Op. + Saldos)", value=f"{total_entregados_usdt_final:,.2f} USDT")
         
     st.subheader("Balance Final de Cierre ⚖️")
-    balance_usdt = (recibir_usdt_sum + balance_inicial_usdt + ajuste_neto_usdt) - entregar_usdt_sum
-    if balance_usdt > 0:
+    balance_final_usdt = (recibir_usdt_sum + balance_inicial_usdt + ajuste_neto_usdt) - entregar_usdt_sum
+    balance_final_pesos = (cobrar_pesos_sum + balance_inicial_pesos + ajuste_neto_pesos) - pagar_pesos_sum
+
+    if balance_final_usdt > 0:
         status_texto = "TE DEBEN PAGAR (Utilidad en USDT)"
         status_color = "#228B22"
-    elif balance_usdt < 0:
+    elif balance_final_usdt < 0:
         status_texto = "DEBES PAGAR (Pérdida en USDT)"
         status_color = "#DC143C"
     else:
         status_texto = "BALANCE CERO"
         status_color = "gray"
-    _, col_balance, _ = st.columns([1, 1.2, 1])
-    with col_balance:
-        st.metric(label="DIFERENCIA NETA DE USDT", value=f"{abs(balance_usdt):,.2f} USDT")
-        st.markdown(f"<h3 style='text-align: center; color: {status_color};'>{status_texto}</h3>", unsafe_allow_html=True)
+        
+    col_balance_usdt, col_balance_pesos = st.columns(2)
+    with col_balance_usdt:
+        st.metric(label="BALANCE FINAL USDT", value=f"{balance_final_usdt:,.2f} USDT")
+        st.markdown(f"<p style='text-align: center; color: {status_color};'>{status_texto}</p>", unsafe_allow_html=True)
+    with col_balance_pesos:
+        st.metric(label="BALANCE FINAL PESOS", value=f"${balance_final_pesos:,.2f} MXN")
             
     st.markdown("---")
     
@@ -274,7 +299,7 @@ def main():
     st.header("5. Registrar Operaciones")
     col_save, col_clear_all = st.columns([3,1])
     with col_save:
-        if st.button("💾 Guardar Todas las Operaciones en Google Sheets", use_container_width=True, type="primary"):
+        if st.button("💾 Guardar y Actualizar Saldo", use_container_width=True, type="primary"):
             if not selected_client_name or selected_client_name == "-- Seleccione un Cliente --":
                 st.error("Por favor, seleccione un cliente antes de guardar.")
             else:
@@ -299,13 +324,20 @@ def main():
                 if not data_to_save_batch:
                     st.warning("No hay operaciones con montos mayores a cero para guardar.")
                 else:
-                    with st.spinner(f"Guardando {len(data_to_save_batch)} operaciones para {selected_client_name}..."):
+                    with st.spinner(f"Guardando {len(data_to_save_batch)} operaciones y actualizando saldo para {selected_client_name}..."):
                         try:
-                            spreadsheet = gsheet_client.open_by_key(st.session_state['spreadsheet_id'])
-                            sheet = spreadsheet.worksheet(st.session_state['sheet_tab_name'])
+                            spreadsheet = gsheet_client.open_by_key(SPREADSHEET_ID)
+                            sheet = spreadsheet.worksheet(SHEET_TAB_NAME)
                             sheet.append_rows(data_to_save_batch, value_input_option='USER_ENTERED')
-                            st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones.")
+                            
+                            update_success = update_client_balance(gsheet_client, SPREADSHEET_ID, selected_client_name, balance_final_usdt, balance_final_pesos)
+                            
+                            if update_success:
+                                st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones y se actualizó el saldo del cliente.")
+                            else:
+                                st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones.")
                             st.balloons()
+                            
                         except Exception as e:
                             st.error(f"❌ Error al guardar: {e}")
     with col_clear_all:
