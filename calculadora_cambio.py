@@ -4,9 +4,6 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import pandas as pd
 
-# --- Importar credenciales y ID desde el archivo de configuración ---
-from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
-
 # --- FUNCIONES DE CONEXIÓN Y DATOS ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -15,15 +12,39 @@ SCOPES = [
 
 @st.cache_resource
 def connect_to_google_sheets():
-    """Conecta a Google Sheets usando las credenciales."""
-    creds = Credentials.from_service_account_info(GOOGLE_CREDS, scopes=SCOPES)
-    return gspread.authorize(creds)
+    """
+    Conecta a Google Sheets. Usa los secretos de Streamlit si está desplegado,
+    de lo contrario, usa el archivo config.py local.
+    """
+    try:
+        # Prioridad 1: Usar los secretos de Streamlit Cloud
+        creds_dict = st.secrets["google_creds"]
+        spreadsheet_id = st.secrets["SPREADSHEET_ID"]
+        sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
+    except FileNotFoundError:
+        # Prioridad 2: Usar el archivo config.py local si st.secrets no existe
+        from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
+        creds_dict = GOOGLE_CREDS
+        spreadsheet_id = SPREADSHEET_ID
+        sheet_tab_name = SHEET_TAB_NAME
+    except Exception as e:
+        st.error(f"Error cargando la configuración. Asegúrate de que tus 'Secrets' en Streamlit Cloud o tu 'config.py' local estén correctos. Detalle: {e}")
+        st.stop()
+        
+    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    client = gspread.authorize(creds)
+    
+    # Guardar ID y nombre en la sesión para uso posterior
+    st.session_state['spreadsheet_id'] = spreadsheet_id
+    st.session_state['sheet_tab_name'] = sheet_tab_name
+    
+    return client
 
 @st.cache_data(ttl=60)
 def get_client_data(_gsheet_client):
     """Lee la hoja 'Clientes' y devuelve los datos como un DataFrame."""
     try:
-        spreadsheet = _gsheet_client.open_by_key(SPREADSHEET_ID)
+        spreadsheet = _gsheet_client.open_by_key(st.session_state['spreadsheet_id'])
         worksheet = spreadsheet.worksheet("Clientes")
         data = worksheet.get_all_records()
         if not data:
@@ -155,8 +176,6 @@ def main():
                 balance_inicial_usdt = float(client_data['Saldo USDT'])
                 balance_inicial_pesos = float(client_data['Saldo MXN'])
                 
-                # --- CAMBIO DE DISEÑO ---
-                # Se usan columnas para poner los saldos uno al lado del otro
                 metric_col1, metric_col2 = st.columns(2)
                 with metric_col1:
                     st.metric("Saldo USDT", f"{balance_inicial_usdt:,.2f}")
@@ -179,7 +198,7 @@ def main():
     
     st.markdown("---")
 
-    # --- El resto del código no necesita cambios ---
+    # --- 2. OPERACIONES DE COMPRA/VENTA ---
     st.header("2. Operaciones de Compra/Venta")
     if 'num_rows' not in st.session_state: st.session_state.num_rows = 1
     col1, col2, _ = st.columns([1.3, 1.3, 5])
@@ -195,6 +214,7 @@ def main():
         if i < st.session_state.num_rows - 1: st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
+    # --- 3. PAGOS Y RECIBOS ---
     st.header("3. Pagos y Recibos (Ajustes de Caja)")
     if 'num_ajustes' not in st.session_state: st.session_state.num_ajustes = 1
     all_ajustes_data = []
@@ -208,6 +228,7 @@ def main():
         st.button("🔄 Limpiar Ajustes", use_container_width=True, on_click=limpiar_ajustes_callback)
     st.markdown("---")
     
+    # --- 4. TOTALES Y BALANCE ---
     st.header("4. Totales y Balance Final")
     pagar_pesos_sum = sum(d['pesos_pagar'] for d in all_rows_data)
     recibir_usdt_sum = sum(d['usdt_recibir'] for d in all_rows_data)
@@ -245,6 +266,7 @@ def main():
             
     st.markdown("---")
     
+    # --- 5. REGISTRAR OPERACIONES ---
     st.header("5. Registrar Operaciones")
     col_save, col_clear_all = st.columns([3,1])
     with col_save:
@@ -275,8 +297,8 @@ def main():
                 else:
                     with st.spinner(f"Guardando {len(data_to_save_batch)} operaciones para {selected_client_name}..."):
                         try:
-                            spreadsheet = gsheet_client.open_by_key(SPREADSHEET_ID)
-                            sheet = spreadsheet.worksheet(SHEET_TAB_NAME)
+                            spreadsheet = gsheet_client.open_by_key(st.session_state['spreadsheet_id'])
+                            sheet = spreadsheet.worksheet(st.session_state['sheet_tab_name'])
                             sheet.append_rows(data_to_save_batch, value_input_option='USER_ENTERED')
                             st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones.")
                             st.balloons()
