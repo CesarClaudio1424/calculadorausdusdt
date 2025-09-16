@@ -8,7 +8,7 @@ import os
 
 # --- Importar credenciales (solo para entorno local) ---
 try:
-    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME, DROPBOX_ACCESS_TOKEN
+    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
 except ImportError:
     # No hacer nada si no existe, se asumirá que estamos en la nube
     pass
