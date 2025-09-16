@@ -8,7 +8,7 @@ import os
 
 # --- Importar credenciales (solo para entorno local) ---
 try:
-    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
+    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME, DROPBOX_ACCESS_TOKEN
 except ImportError:
     # No hacer nada si no existe, se asumirá que estamos en la nube
     pass
@@ -23,12 +23,10 @@ def connect_to_google_sheets():
     de lo contrario, usa el archivo config.py local.
     """
     try:
-        # Prioridad 1: Usar los secretos de Streamlit Cloud
         creds_dict = st.secrets["google_creds"]
         spreadsheet_id = st.secrets["SPREADSHEET_ID"]
         sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
     except (FileNotFoundError, KeyError):
-        # Prioridad 2: Usar el archivo config.py local
         creds_dict = GOOGLE_CREDS
         spreadsheet_id = SPREADSHEET_ID
         sheet_tab_name = SHEET_TAB_NAME
@@ -38,13 +36,11 @@ def connect_to_google_sheets():
 
 @st.cache_resource
 def connect_to_dropbox():
-    """Conecta a Dropbox usando el token de Secrets o de config.py."""
+    """Conecta a Dropbox usando el token."""
     try:
-        # Prioridad 1: Usar los secretos de Streamlit Cloud
-        token = st.secrets["sl.u.AF9bp8sTRhKtGdYoRQWM2k1Kpep1ZpE1_ZtLSnT-c0LN4iltoQxito5ujKrmsxS4-xBTa5x_S1zZaFQFVaX2EB-k5QnI6Xz58bgjIEpPQwsSWaA4OJjHj5H5EPTmcFijisDARfNTaPeitpqllaBjrOV48SzrGjAt6VdnrBHebSY8cKFO0jBEwVSa2vdxWiA28TNBUNFFASSbD_nJ-y72EhutfM1MN5-MFDsnYwWtJJFN1qPh_3Au4DQQ8TlhC3CjO8ZAlzN07OPDHTulv8miOlVJd9w9frLqN9ZrZMMryMb1S3XjdG8QdlpR3MGpJNd2XcNS0ZUVfR4l6rWTzBTM_vIrcTtEYoe_uEfhJzEQoXK2ojikkpEp5BfqrlaaKiKaOSvvHLZtUwH2sE6uTyxCiv9DOP-k1QnBBqNiiStH-TvlBZ2xwGbq-dZmBxbiQGsMrLc_fJI_pkO4h-vGA97fmBseC9qKqsRnyDl6F9N9D6nyxi-wgXVhZdSOswwWnxvZFPETf_mJb3lU0bnugxt1TdeYsIqcTNSiZaB83dTIF1AelJxUMUkAGSZjnMTycnu2Z0LbiGJZ7szLuXvLTGnJF30cFXLb7YRjfpw_Yq63zjIQxg9hVj2eYM0C2De4ui0JY_iQydvlur0JvGw8tGAjbOFqpz4uUkpmnqsvhU6D4B_XJn0EMiZkEApBDDLqahjnGdhZTqOwbM-AuINeYUjm9nCShOfGSIikV9S8Me2cJriIarKGuzA3y3K7hYuVSilK82OfHD-1YKWdpQ3MnIS21c7VT7776IQVGr4bQhEtDogbQMEhAeveO_oEGz7PUVm1xtsyEaWnGTUCo2XaKAPjpzO792l4Th5MN2vELSSXFsbhtVggaxOQuqZo2Au7epiMLLzZtA_U4ep4SpmRy88MHb4Y55Gm3BgtKjd3YocQxEAeYKcRTvSdfc6zPvuZ54f2cwC4rKvoQoNT-ZemIqEAVkrKXl5Ofd78oDfuATFXu-uyCM3s1MPtEe_0RCIi2rolxO9BsMPaqgK25azsu1tK5a4o_JtVAnYh_GidlycBwCDbUjkY0Uz5m09OPbm_PJaotkRD-twYiu6Lgfw7QWXvOqUKnDADNnla6qRenLUPR7GN7hnbkRH3wxmXAdjhzlY754jJXjjC8WKcJxLBZUPPgJN1g_T_d6fqifzhRgpBeXrMkJhQXADEsD0OsZbGCtdqWct8hoU5_eSorD0M-qWdMArUbqX5G1sW3K7-n1wx79_3gh3mmZcIB1hmo9asKLSy7eX5xBUyL1BOfB0MDrazHowkUhqTD9Z3-hdnIYxya9tNBwKMcGbMg670lPosLuT7HoIFMBhGAhEwhPMkIYLXF14FXnBsqObKELPkMyGtAmwQYCemEsGxJH9RbxMyzXf36hgaGcmlcqrVQL8OG-CdHWcZsX0YnPs8t9_tf3AjWKJimLXm3QFI5Junh9JJLKtcTcu9u3XUSwMzIqyWs7NnzpTqjw0dBXL1oEruoPHHj3f8dg"]
+        token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        # Prioridad 2: Usar el archivo config.py local
-        token = "sl.u.AF9bp8sTRhKtGdYoRQWM2k1Kpep1ZpE1_ZtLSnT-c0LN4iltoQxito5ujKrmsxS4-xBTa5x_S1zZaFQFVaX2EB-k5QnI6Xz58bgjIEpPQwsSWaA4OJjHj5H5EPTmcFijisDARfNTaPeitpqllaBjrOV48SzrGjAt6VdnrBHebSY8cKFO0jBEwVSa2vdxWiA28TNBUNFFASSbD_nJ-y72EhutfM1MN5-MFDsnYwWtJJFN1qPh_3Au4DQQ8TlhC3CjO8ZAlzN07OPDHTulv8miOlVJd9w9frLqN9ZrZMMryMb1S3XjdG8QdlpR3MGpJNd2XcNS0ZUVfR4l6rWTzBTM_vIrcTtEYoe_uEfhJzEQoXK2ojikkpEp5BfqrlaaKiKaOSvvHLZtUwH2sE6uTyxCiv9DOP-k1QnBBqNiiStH-TvlBZ2xwGbq-dZmBxbiQGsMrLc_fJI_pkO4h-vGA97fmBseC9qKqsRnyDl6F9N9D6nyxi-wgXVhZdSOswwWnxvZFPETf_mJb3lU0bnugxt1TdeYsIqcTNSiZaB83dTIF1AelJxUMUkAGSZjnMTycnu2Z0LbiGJZ7szLuXvLTGnJF30cFXLb7YRjfpw_Yq63zjIQxg9hVj2eYM0C2De4ui0JY_iQydvlur0JvGw8tGAjbOFqpz4uUkpmnqsvhU6D4B_XJn0EMiZkEApBDDLqahjnGdhZTqOwbM-AuINeYUjm9nCShOfGSIikV9S8Me2cJriIarKGuzA3y3K7hYuVSilK82OfHD-1YKWdpQ3MnIS21c7VT7776IQVGr4bQhEtDogbQMEhAeveO_oEGz7PUVm1xtsyEaWnGTUCo2XaKAPjpzO792l4Th5MN2vELSSXFsbhtVggaxOQuqZo2Au7epiMLLzZtA_U4ep4SpmRy88MHb4Y55Gm3BgtKjd3YocQxEAeYKcRTvSdfc6zPvuZ54f2cwC4rKvoQoNT-ZemIqEAVkrKXl5Ofd78oDfuATFXu-uyCM3s1MPtEe_0RCIi2rolxO9BsMPaqgK25azsu1tK5a4o_JtVAnYh_GidlycBwCDbUjkY0Uz5m09OPbm_PJaotkRD-twYiu6Lgfw7QWXvOqUKnDADNnla6qRenLUPR7GN7hnbkRH3wxmXAdjhzlY754jJXjjC8WKcJxLBZUPPgJN1g_T_d6fqifzhRgpBeXrMkJhQXADEsD0OsZbGCtdqWct8hoU5_eSorD0M-qWdMArUbqX5G1sW3K7-n1wx79_3gh3mmZcIB1hmo9asKLSy7eX5xBUyL1BOfB0MDrazHowkUhqTD9Z3-hdnIYxya9tNBwKMcGbMg670lPosLuT7HoIFMBhGAhEwhPMkIYLXF14FXnBsqObKELPkMyGtAmwQYCemEsGxJH9RbxMyzXf36hgaGcmlcqrVQL8OG-CdHWcZsX0YnPs8t9_tf3AjWKJimLXm3QFI5Junh9JJLKtcTcu9u3XUSwMzIqyWs7NnzpTqjw0dBXL1oEruoPHHj3f8dg"
+        token = DROPBOX_ACCESS_TOKEN
     return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
