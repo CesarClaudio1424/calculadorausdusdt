@@ -265,10 +265,6 @@ def main():
     recibir_usdt_sum = sum(d['usdt_recibir'] for d in all_rows_data)
     cobrar_pesos_sum = sum(d['pesos_cobrar'] for d in all_rows_data)
     entregar_usdt_sum = sum(d['usdt_entregar'] for d in all_rows_data)
-    
-    # --- LÓGICA DE CÁLCULO CORREGIDA Y DEFINITIVA ---
-    # Pago (salida tuya) es positivo para la deuda del cliente.
-    # Recibo (entrada tuya) es negativo para la deuda del cliente.
     ajuste_neto_pesos = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'MXN') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'MXN')
     ajuste_neto_usdt = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'USDT') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'USDT')
     
