@@ -6,6 +6,13 @@ import pandas as pd
 import dropbox
 import os
 
+# --- Importar credenciales (solo para entorno local) ---
+try:
+    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME, DROPBOX_ACCESS_TOKEN
+except ImportError:
+    # No hacer nada si no existe, se asumirá que estamos en la nube
+    pass
+
 # --- FUNCIONES DE CONEXIÓN Y DATOS ---
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"]
 
@@ -16,30 +23,23 @@ def connect_to_google_sheets():
     de lo contrario, usa el archivo config.py local.
     """
     try:
-        # Prioridad 1: Usar los secretos de Streamlit Cloud
         creds_dict = st.secrets["google_creds"]
         spreadsheet_id = st.secrets["SPREADSHEET_ID"]
         sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
     except (FileNotFoundError, KeyError):
-        # Prioridad 2: Usar el archivo config.py local
-        from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
         creds_dict = GOOGLE_CREDS
         spreadsheet_id = SPREADSHEET_ID
         sheet_tab_name = SHEET_TAB_NAME
-    
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     client = gspread.authorize(creds)
     return client, spreadsheet_id, sheet_tab_name
 
 @st.cache_resource
 def connect_to_dropbox():
-    """Conecta a Dropbox usando el token de Secrets o de config.py."""
+    """Conecta a Dropbox usando el token."""
     try:
-        # Prioridad 1: Usar los secretos de Streamlit Cloud
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        # Prioridad 2: Usar el archivo config.py local
-        from config import DROPBOX_ACCESS_TOKEN
         token = DROPBOX_ACCESS_TOKEN
     return dropbox.Dropbox(token)
 
@@ -191,7 +191,6 @@ def main():
     gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
     dbx_client = connect_to_dropbox()
 
-    # --- Callbacks ---
     def add_calculo_row():
         if st.session_state.num_rows < 15: st.session_state.num_rows += 1
     def add_ajuste_row():
