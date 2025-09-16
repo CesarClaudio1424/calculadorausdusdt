@@ -309,7 +309,7 @@ def main():
         
     st.subheader("Balance Final de Cierre ⚖️")
     balance_final_usdt = (recibir_usdt_sum + balance_inicial_usdt + ajuste_neto_usdt) - entregar_usdt_sum
-    balance_final_pesos = (cobrar_pesos_sum + balance_inicial_pesos + ajuste_neto_pesos) - pagar_pesos_sum
+    balance_final_pesos = 0 #(cobrar_pesos_sum + balance_inicial_pesos + ajuste_neto_pesos) - pagar_pesos_sum
     if balance_final_usdt > 0:
         status_texto = "TE DEBEN PAGAR (Utilidad en USDT)"
         status_color = "#228B22"
