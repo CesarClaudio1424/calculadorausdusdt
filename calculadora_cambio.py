@@ -129,12 +129,10 @@ def create_calculation_row(row_index, precio_compra, precio_venta, mode_vende, m
             input_vende = st.number_input(label_vende, min_value=0.0, format="%.2f", step=100.0, key=f"input_vende_{row_index}", label_visibility=label_visibility)
         with col_resultado:
             if mode_vende == "Pesos -> USDT":
-                pesos_a_pagar = input_vende
-                usdt_a_recibir = (pesos_a_pagar / precio_compra) if precio_compra > 0 else 0.0
+                pesos_a_pagar = input_vende; usdt_a_recibir = (pesos_a_pagar / precio_compra) if precio_compra > 0 else 0.0
                 resultado_vende = usdt_a_recibir
             else: 
-                usdt_a_recibir = input_vende
-                pesos_a_pagar = usdt_a_recibir * precio_compra
+                usdt_a_recibir = input_vende; pesos_a_pagar = usdt_a_recibir * precio_compra
                 resultado_vende = pesos_a_pagar
             st.markdown(f"""<div style="display: flex; align-items: center; justify-content: start; height: {div_height}px;"><p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0;'>{resultado_vende:,.2f} {resultado_suffix_vende}</p></div>""", unsafe_allow_html=True)
         with col_uploader:
@@ -148,12 +146,10 @@ def create_calculation_row(row_index, precio_compra, precio_venta, mode_vende, m
             input_compra = st.number_input(label_compra, min_value=0.0, format="%.2f", step=100.0, key=f"input_compra_{row_index}", label_visibility=label_visibility)
         with col_resultado:
             if mode_compra == "Pesos -> USDT":
-                pesos_a_cobrar = input_compra
-                usdt_a_entregar = (pesos_a_cobrar / precio_venta) if precio_venta > 0 else 0.0
+                pesos_a_cobrar = input_compra; usdt_a_entregar = (pesos_a_cobrar / precio_venta) if precio_venta > 0 else 0.0
                 resultado_compra = usdt_a_entregar
             else:
-                usdt_a_entregar = input_compra
-                pesos_a_cobrar = usdt_a_entregar * precio_venta
+                usdt_a_entregar = input_compra; pesos_a_cobrar = usdt_a_entregar * precio_venta
                 resultado_compra = pesos_a_cobrar
             st.markdown(f"""<div style="display: flex; align-items: center; justify-content: start; height: {div_height}px;"><p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0;'>{resultado_compra:,.2f} {resultado_suffix_compra}</p></div>""", unsafe_allow_html=True)
         with col_uploader:
@@ -183,11 +179,13 @@ def create_ajuste_row(row_index):
 
 def main():
     st.set_page_config(page_title="Calculadora y Registro", page_icon="🏦", layout="wide")
-    st.markdown("""<style>
+    st.markdown("""
+    <style>
         [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzone"] {display: none;}
         [data-testid="stFileUploader"] section {padding: 0;border: none;}
         [data-testid="stFileUploader"] {padding-top: 28px;}
-    </style>""", unsafe_allow_html=True)
+    </style>
+    """, unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center;'>Calculadora y Registro de Operaciones 🏦</h1>", unsafe_allow_html=True)
     st.markdown("---")
     gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
@@ -267,6 +265,10 @@ def main():
     recibir_usdt_sum = sum(d['usdt_recibir'] for d in all_rows_data)
     cobrar_pesos_sum = sum(d['pesos_cobrar'] for d in all_rows_data)
     entregar_usdt_sum = sum(d['usdt_entregar'] for d in all_rows_data)
+    
+    # --- LÓGICA DE CÁLCULO CORREGIDA Y DEFINITIVA ---
+    # Pago (salida tuya) es positivo para la deuda del cliente.
+    # Recibo (entrada tuya) es negativo para la deuda del cliente.
     ajuste_neto_pesos = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'MXN') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'MXN')
     ajuste_neto_usdt = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'USDT') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'USDT')
     
