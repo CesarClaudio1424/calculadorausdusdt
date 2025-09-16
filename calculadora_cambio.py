@@ -36,10 +36,13 @@ def connect_to_google_sheets():
 
 @st.cache_resource
 def connect_to_dropbox():
-    """Conecta a Dropbox usando el token."""
+    """Conecta a Dropbox usando el token de Secrets o de config.py."""
     try:
+        # Prioridad 1: Usar los secretos de Streamlit Cloud
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
+        # Prioridad 2: Usar el archivo config.py local si falla lo anterior
+        from config import DROPBOX_ACCESS_TOKEN
         token = DROPBOX_ACCESS_TOKEN
     return dropbox.Dropbox(token)
 
