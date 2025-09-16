@@ -23,10 +23,12 @@ def connect_to_google_sheets():
     de lo contrario, usa el archivo config.py local.
     """
     try:
+        # Prioridad 1: Usar los secretos de Streamlit Cloud
         creds_dict = st.secrets["google_creds"]
         spreadsheet_id = st.secrets["SPREADSHEET_ID"]
         sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
     except (FileNotFoundError, KeyError):
+        # Prioridad 2: Usar el archivo config.py local
         creds_dict = GOOGLE_CREDS
         spreadsheet_id = SPREADSHEET_ID
         sheet_tab_name = SHEET_TAB_NAME
@@ -41,7 +43,7 @@ def connect_to_dropbox():
         # Prioridad 1: Usar los secretos de Streamlit Cloud
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        # Prioridad 2: Usar el archivo config.py local si falla lo anterior
+        # Prioridad 2: Usar el archivo config.py local
         from config import DROPBOX_ACCESS_TOKEN
         token = DROPBOX_ACCESS_TOKEN
     return dropbox.Dropbox(token)
