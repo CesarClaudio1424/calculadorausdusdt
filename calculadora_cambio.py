@@ -40,7 +40,7 @@ def connect_to_dropbox():
     try:
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        token = DROPBOX_ACCESS_TOKEN
+        token = "sl.u.AF9bp8sTRhKtGdYoRQWM2k1Kpep1ZpE1_ZtLSnT-c0LN4iltoQxito5ujKrmsxS4-xBTa5x_S1zZaFQFVaX2EB-k5QnI6Xz58bgjIEpPQwsSWaA4OJjHj5H5EPTmcFijisDARfNTaPeitpqllaBjrOV48SzrGjAt6VdnrBHebSY8cKFO0jBEwVSa2vdxWiA28TNBUNFFASSbD_nJ-y72EhutfM1MN5-MFDsnYwWtJJFN1qPh_3Au4DQQ8TlhC3CjO8ZAlzN07OPDHTulv8miOlVJd9w9frLqN9ZrZMMryMb1S3XjdG8QdlpR3MGpJNd2XcNS0ZUVfR4l6rWTzBTM_vIrcTtEYoe_uEfhJzEQoXK2ojikkpEp5BfqrlaaKiKaOSvvHLZtUwH2sE6uTyxCiv9DOP-k1QnBBqNiiStH-TvlBZ2xwGbq-dZmBxbiQGsMrLc_fJI_pkO4h-vGA97fmBseC9qKqsRnyDl6F9N9D6nyxi-wgXVhZdSOswwWnxvZFPETf_mJb3lU0bnugxt1TdeYsIqcTNSiZaB83dTIF1AelJxUMUkAGSZjnMTycnu2Z0LbiGJZ7szLuXvLTGnJF30cFXLb7YRjfpw_Yq63zjIQxg9hVj2eYM0C2De4ui0JY_iQydvlur0JvGw8tGAjbOFqpz4uUkpmnqsvhU6D4B_XJn0EMiZkEApBDDLqahjnGdhZTqOwbM-AuINeYUjm9nCShOfGSIikV9S8Me2cJriIarKGuzA3y3K7hYuVSilK82OfHD-1YKWdpQ3MnIS21c7VT7776IQVGr4bQhEtDogbQMEhAeveO_oEGz7PUVm1xtsyEaWnGTUCo2XaKAPjpzO792l4Th5MN2vELSSXFsbhtVggaxOQuqZo2Au7epiMLLzZtA_U4ep4SpmRy88MHb4Y55Gm3BgtKjd3YocQxEAeYKcRTvSdfc6zPvuZ54f2cwC4rKvoQoNT-ZemIqEAVkrKXl5Ofd78oDfuATFXu-uyCM3s1MPtEe_0RCIi2rolxO9BsMPaqgK25azsu1tK5a4o_JtVAnYh_GidlycBwCDbUjkY0Uz5m09OPbm_PJaotkRD-twYiu6Lgfw7QWXvOqUKnDADNnla6qRenLUPR7GN7hnbkRH3wxmXAdjhzlY754jJXjjC8WKcJxLBZUPPgJN1g_T_d6fqifzhRgpBeXrMkJhQXADEsD0OsZbGCtdqWct8hoU5_eSorD0M-qWdMArUbqX5G1sW3K7-n1wx79_3gh3mmZcIB1hmo9asKLSy7eX5xBUyL1BOfB0MDrazHowkUhqTD9Z3-hdnIYxya9tNBwKMcGbMg670lPosLuT7HoIFMBhGAhEwhPMkIYLXF14FXnBsqObKELPkMyGtAmwQYCemEsGxJH9RbxMyzXf36hgaGcmlcqrVQL8OG-CdHWcZsX0YnPs8t9_tf3AjWKJimLXm3QFI5Junh9JJLKtcTcu9u3XUSwMzIqyWs7NnzpTqjw0dBXL1oEruoPHHj3f8dg"
     return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
@@ -112,6 +112,36 @@ def update_client_balance(_gsheet_client, spreadsheet_id, client_alias, new_usdt
         st.warning(f"Hubo un error al actualizar el saldo del cliente: {e}")
         return False
 
+def get_next_folio_number(_gsheet_client, spreadsheet_id, sheet_tab_name):
+    """
+    Revisa el último registro en la hoja para determinar el siguiente número de folio.
+    Se reinicia cada día.
+    """
+    try:
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet(sheet_tab_name)
+        all_values = worksheet.get_all_values()
+        
+        if len(all_values) < 2: return 1
+
+        last_row = all_values[-1]
+        last_folio = last_row[0]
+        
+        parts = last_folio.split('-')
+        last_folio_date_str = f"{parts[0]}-{parts[1]}-{parts[2]}"
+        last_folio_num = int(parts[3])
+
+        today_date_str = datetime.now().strftime("%y-%m-%d")
+
+        if last_folio_date_str == today_date_str:
+            return last_folio_num + 1
+        else:
+            return 1
+    except (ValueError, IndexError): # Captura errores si el folio no tiene el formato esperado
+        return 1
+    except Exception:
+        return 1
+
 # --- FUNCIONES DE LA INTERFAZ ---
 
 def create_calculation_row(row_index, precio_compra, precio_venta, mode_vende, mode_compra):
@@ -179,13 +209,11 @@ def create_ajuste_row(row_index):
 
 def main():
     st.set_page_config(page_title="Calculadora y Registro", page_icon="🏦", layout="wide")
-    st.markdown("""
-    <style>
+    st.markdown("""<style>
         [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzone"] {display: none;}
         [data-testid="stFileUploader"] section {padding: 0;border: none;}
         [data-testid="stFileUploader"] {padding-top: 28px;}
-    </style>
-    """, unsafe_allow_html=True)
+    </style>""", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center;'>Calculadora y Registro de Operaciones 🏦</h1>", unsafe_allow_html=True)
     st.markdown("---")
     gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
@@ -320,34 +348,39 @@ def main():
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     total_ops = len(operations_to_process)
                     
+                    # OBTENER FOLIO INICIAL
+                    next_folio_num = get_next_folio_number(gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME)
+                    today_prefix = datetime.now().strftime("%y-%m-%d")
+
                     for i, op in enumerate(operations_to_process):
-                        progress_text = f"Procesando operación {i + 1}/{total_ops}..."
+                        current_folio = f"{today_prefix}-{next_folio_num + i:04d}"
+                        progress_text = f"Procesando operación {current_folio}..."
                         progress_bar.progress((i) / (total_ops + 2), text=progress_text)
                         link = ""
                         if op['type'] == 'Compra':
                             uploader_key = f"uploader_vende_{op['index']}"
                             if uploader_key in st.session_state and st.session_state[uploader_key]:
                                 link = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            data_to_save_batch.append([timestamp, selected_client_name, "Compra", op['data']["pesos_pagar"], op['data']["usdt_recibir"], precio_compra_casa, link])
+                            data_to_save_batch.append([current_folio, timestamp, selected_client_name, "Compra", op['data']["pesos_pagar"], op['data']["usdt_recibir"], precio_compra_casa, link])
                         elif op['type'] == 'Venta':
                             uploader_key = f"uploader_compra_{op['index']}"
                             if uploader_key in st.session_state and st.session_state[uploader_key]:
                                 link = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            data_to_save_batch.append([timestamp, selected_client_name, "Venta", op['data']["pesos_cobrar"], op['data']["usdt_entregar"], precio_venta_casa, link])
+                            data_to_save_batch.append([current_folio, timestamp, selected_client_name, "Venta", op['data']["pesos_cobrar"], op['data']["usdt_entregar"], precio_venta_casa, link])
                         elif op['type'] == 'Pago':
                             uploader_key = f"uploader_pago_{op['index']}"
                             if uploader_key in st.session_state and st.session_state[uploader_key]:
                                link = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
                             pesos = op['data']['pago_monto'] if op['data']['pago_moneda'] == 'MXN' else ""
                             usdt = op['data']['pago_monto'] if op['data']['pago_moneda'] == 'USDT' else ""
-                            data_to_save_batch.append([timestamp, selected_client_name, "Pago", pesos, usdt, "N/A", link])
+                            data_to_save_batch.append([current_folio, timestamp, selected_client_name, "Pago", pesos, usdt, "N/A", link])
                         elif op['type'] == 'Recibo':
                             uploader_key = f"uploader_recibo_{op['index']}"
                             if uploader_key in st.session_state and st.session_state[uploader_key]:
                                 link = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
                             pesos = op['data']['recibo_monto'] if op['data']['recibo_moneda'] == 'MXN' else ""
                             usdt = op['data']['recibo_monto'] if op['data']['recibo_moneda'] == 'USDT' else ""
-                            data_to_save_batch.append([timestamp, selected_client_name, "Recibo", pesos, usdt, "N/A", link])
+                            data_to_save_batch.append([current_folio, timestamp, selected_client_name, "Recibo", pesos, usdt, "N/A", link])
                     
                     try:
                         progress_bar.progress((total_ops + 1) / (total_ops + 2), text="Guardando en Google Sheets...")
