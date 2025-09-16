@@ -3,44 +3,55 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import pandas as pd
-import dropbox
 
-# --- Importar credenciales y tokens ---
+# --- Importar credenciales (solo para entorno local) ---
 try:
-    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME, DROPBOX_ACCESS_TOKEN
+    from config import GOOGLE_CREDS, SPREADSHEET_ID, SHEET_TAB_NAME
 except ImportError:
     # No hacer nada si no existe, se asumirá que estamos en la nube
     pass
 
-# --- FUNCIONES DE CONEXIÓN ---
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"]
+# --- FUNCIONES DE CONEXIÓN Y DATOS ---
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file"
+]
 
 @st.cache_resource
 def connect_to_google_sheets():
+    """
+    Conecta a Google Sheets. Usa los secretos de Streamlit si está desplegado,
+    de lo contrario, usa el archivo config.py local.
+    Devuelve el cliente de gspread, el ID de la hoja y el nombre de la pestaña.
+    """
     try:
+        # Prioridad 1: Usar los secretos de Streamlit Cloud
         creds_dict = st.secrets["google_creds"]
+        spreadsheet_id = st.secrets["SPREADSHEET_ID"]
+        sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
     except (FileNotFoundError, KeyError):
+        # Prioridad 2: Usar el archivo config.py local
         creds_dict = GOOGLE_CREDS
+        spreadsheet_id = SPREADSHEET_ID
+        sheet_tab_name = SHEET_TAB_NAME
+    except Exception as e:
+        st.error(f"Error cargando la configuración. Asegúrate de que tus 'Secrets' en Streamlit Cloud o tu 'config.py' local estén correctos. Detalle: {e}")
+        st.stop()
+        
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    return gspread.authorize(creds)
-
-@st.cache_resource
-def connect_to_dropbox():
-    """Conecta a Dropbox usando el token."""
-    try:
-        token = st.secrets["DROPBOX_ACCESS_TOKEN"]
-    except (FileNotFoundError, KeyError):
-        token = DROPBOX_ACCESS_TOKEN
-    return dropbox.Dropbox(token)
+    client = gspread.authorize(creds)
+    
+    return client, spreadsheet_id, sheet_tab_name
 
 @st.cache_data(ttl=60)
-def get_client_data(_gsheet_client):
+def get_client_data(_gsheet_client, spreadsheet_id):
+    """Lee la hoja 'Clientes' y devuelve los datos como un DataFrame."""
     try:
-        spreadsheet_id = st.secrets.get("SPREADSHEET_ID", SPREADSHEET_ID)
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("Clientes")
         data = worksheet.get_all_records()
-        if not data: return pd.DataFrame(columns=['Alias Cliente', 'Saldo USDT', 'Saldo MXN'])
+        if not data:
+            return pd.DataFrame(columns=['Alias Cliente', 'Saldo USDT', 'Saldo MXN'])
             
         df = pd.DataFrame(data)
         df['Saldo USDT'] = df['Saldo USDT'].astype(str).str.replace(r'[$,]', '', regex=True)
@@ -55,53 +66,92 @@ def get_client_data(_gsheet_client):
         st.error(f"No se pudo cargar la lista de clientes: {e}")
         return pd.DataFrame()
 
-def upload_to_dropbox(dbx_client, file_object, client_name):
-    """Sube un archivo a Dropbox y devuelve el link para compartir."""
+def update_client_balance(_gsheet_client, spreadsheet_id, client_alias, new_usdt, new_mxn):
+    """Encuentra un cliente en la hoja 'Clientes' y actualiza sus saldos."""
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        dropbox_path = f"/{client_name.replace(' ', '_')}/{timestamp}_{file_object.name}"
+        spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("Clientes")
         
-        dbx_client.files_upload(file_object.getvalue(), dropbox_path, mode=dropbox.files.WriteMode('overwrite'))
-        
-        try:
-            links = dbx_client.sharing_list_shared_links(path=dropbox_path).links
-            link = links[0].url if links else None
-        except dropbox.exceptions.ApiError:
-            link = None
+        cell = worksheet.find(client_alias, in_column=2) # Asume que 'Alias Cliente' es la columna B
+        if cell is None:
+            st.warning(f"No se pudo encontrar al cliente '{client_alias}' para actualizar su saldo.")
+            return False
 
-        if link is None:
-            link_metadata = dbx_client.sharing_create_shared_link_with_settings(dropbox_path)
-            link = link_metadata.url
+        headers = worksheet.row_values(1)
+        usdt_col = headers.index("Saldo USDT") + 1
+        mxn_col = headers.index("Saldo MXN") + 1
         
-        return link.replace("?dl=0", "?raw=1")
+        worksheet.update_cell(cell.row, mxn_col, new_mxn)
+        worksheet.update_cell(cell.row, usdt_col, new_usdt)
+        return True
     except Exception as e:
-        st.warning(f"No se pudo subir el archivo a Dropbox: {e}")
-        return ""
+        st.warning(f"Se guardaron las transacciones, pero hubo un error al actualizar el saldo del cliente: {e}")
+        return False
 
 # --- FUNCIONES DE LA INTERFAZ ---
 
 def create_calculation_row(row_index, precio_compra, precio_venta, mode_vende, mode_compra):
+    """Crea una fila de la calculadora de cambio."""
     div_height = 78 if row_index == 0 else 38
     col_vende, _, col_compra = st.columns([1, 0.2, 1])
+
     if row_index == 0:
         with col_vende: st.subheader("Cliente Vende / Yo Compro")
         with col_compra: st.subheader("Cliente Compra / Yo Vendo")
 
     with col_vende:
-        # ... (Lógica de cálculo sin cambios)
-        st.file_uploader("Comprobante", type=["png", "jpg", "jpeg"], key=f"uploader_vende_{row_index}", label_visibility="collapsed")
+        label_vende = "Monto en USDT a Recibir" if mode_vende == "USDT -> Pesos" else "Monto en Pesos a Pagar"
+        resultado_suffix_vende = "MXN" if mode_vende == "USDT -> Pesos" else "USDT"
+        col_monto_input, col_resultado_output = st.columns([1, 1])
+        with col_monto_input:
+            label_visibility = "visible" if row_index == 0 else "collapsed"
+            input_vende = st.number_input(label_vende, min_value=0.0, format="%.2f", step=100.0, key=f"input_vende_{row_index}", label_visibility=label_visibility)
+        with col_resultado_output:
+            if mode_vende == "Pesos -> USDT":
+                pesos_a_pagar = input_vende
+                usdt_a_recibir = (pesos_a_pagar / precio_compra) if precio_compra > 0 else 0.0
+                resultado_vende = usdt_a_recibir
+            else: 
+                usdt_a_recibir = input_vende
+                pesos_a_pagar = usdt_a_recibir * precio_compra
+                resultado_vende = pesos_a_pagar
+            st.markdown(f"""<div style="display: flex; align-items: center; justify-content: start; height: {div_height}px;"><p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0;'>{resultado_vende:,.2f} {resultado_suffix_vende}</p></div>""", unsafe_allow_html=True)
 
     with col_compra:
-        # ... (Lógica de cálculo sin cambios)
-        st.file_uploader("Comprobante", type=["png", "jpg", "jpeg"], key=f"uploader_compra_{row_index}", label_visibility="collapsed")
+        label_compra = "Monto en USDT a Entregar" if mode_compra == "USDT -> Pesos" else "Monto en Pesos a Cobrar"
+        resultado_suffix_compra = "MXN" if mode_compra == "USDT -> Pesos" else "USDT"
+        col_monto_input, col_resultado_output = st.columns([1, 1])
+        with col_monto_input:
+            label_visibility = "visible" if row_index == 0 else "collapsed"
+            input_compra = st.number_input(label_compra, min_value=0.0, format="%.2f", step=100.0, key=f"input_compra_{row_index}", label_visibility=label_visibility)
+        with col_resultado_output:
+            if mode_compra == "Pesos -> USDT":
+                pesos_a_cobrar = input_compra
+                usdt_a_entregar = (pesos_a_cobrar / precio_venta) if precio_venta > 0 else 0.0
+                resultado_compra = usdt_a_entregar
+            else:
+                usdt_a_entregar = input_compra
+                pesos_a_cobrar = usdt_a_entregar * precio_venta
+                resultado_compra = pesos_a_cobrar
+            st.markdown(f"""<div style="display: flex; align-items: center; justify-content: start; height: {div_height}px;"><p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0;'>{resultado_compra:,.2f} {resultado_suffix_compra}</p></div>""", unsafe_allow_html=True)
     
     return {"pesos_pagar": pesos_a_pagar, "usdt_recibir": usdt_a_recibir, "pesos_cobrar": pesos_a_cobrar, "usdt_entregar": usdt_a_entregar}
 
 def create_ajuste_row(row_index):
-    # ... (Lógica de ajuste sin cambios, añadiendo file uploaders)
-    st.file_uploader("Comprobante de Pago", type=["png", "jpg", "jpeg"], key=f"uploader_pago_{row_index}", label_visibility="collapsed")
-    st.file_uploader("Comprobante de Recibo", type=["png", "jpg", "jpeg"], key=f"uploader_recibo_{row_index}", label_visibility="collapsed")
+    """Crea una fila para la sección de Pagos y Recibos."""
+    col_pago, _, col_recibo = st.columns([1, 0.2, 1])
     
+    if row_index == 0:
+        with col_pago: st.subheader("Pagos (Salidas)")
+        with col_recibo: st.subheader("Recibos (Entradas)")
+
+    with col_pago:
+        pago_monto = st.number_input("Monto del Pago", min_value=0.0, format="%.2f", key=f"pago_monto_{row_index}", label_visibility="collapsed")
+        pago_moneda = st.radio("Moneda del Pago", ["MXN", "USDT"], key=f"pago_moneda_{row_index}", horizontal=True, index=1)
+    with col_recibo:
+        recibo_monto = st.number_input("Monto del Recibo", min_value=0.0, format="%.2f", key=f"recibo_monto_{row_index}", label_visibility="collapsed")
+        recibo_moneda = st.radio("Moneda del Recibo", ["MXN", "USDT"], key=f"recibo_moneda_{row_index}", horizontal=True, index=1)
+        
     return {"pago_monto": pago_monto, "pago_moneda": pago_moneda, "recibo_monto": recibo_monto, "recibo_moneda": recibo_moneda}
 
 def main():
@@ -109,11 +159,142 @@ def main():
     st.markdown("<h1 style='text-align: center;'>Calculadora y Registro de Operaciones 🏦</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    gsheet_client = connect_to_google_sheets()
-    dbx_client = connect_to_dropbox()
-    
-    # ... (Callbacks y resto de la app sin cambios hasta el botón de guardar)
+    gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
 
+    # --- Callbacks ---
+    def add_calculo_row():
+        if st.session_state.num_rows < 15: st.session_state.num_rows += 1
+    def add_ajuste_row():
+        st.session_state.num_ajustes += 1
+    def limpiar_calculos_callback():
+        for i in range(st.session_state.num_rows):
+            if f"input_vende_{i}" in st.session_state: st.session_state[f"input_vende_{i}"] = 0.0
+            if f"input_compra_{i}" in st.session_state: st.session_state[f"input_compra_{i}"] = 0.0
+        st.session_state.num_rows = 1
+    def limpiar_ajustes_callback():
+        for i in range(st.session_state.num_ajustes):
+            if f"pago_monto_{i}" in st.session_state: st.session_state[f"pago_monto_{i}"] = 0.0
+            if f"recibo_monto_{i}" in st.session_state: st.session_state[f"recibo_monto_{i}"] = 0.0
+        st.session_state.num_ajustes = 1
+    def limpiar_todo_callback():
+        limpiar_calculos_callback()
+        limpiar_ajustes_callback()
+        if "cliente_selector" in st.session_state: st.session_state.cliente_selector = "-- Seleccione un Cliente --"
+
+    # --- 1. SECCIÓN DE CONFIGURACIÓN UNIFICADA ---
+    st.header("1. Configuración de Operación")
+    col_cliente, col_compra, col_venta = st.columns(3)
+
+    with col_cliente:
+        st.subheader("Cliente y Balance")
+        client_df = get_client_data(gsheet_client, SPREADSHEET_ID)
+        balance_inicial_usdt = 0.0
+        balance_inicial_pesos = 0.0
+        selected_client_name = ""
+
+        if not client_df.empty:
+            client_list = ["-- Seleccione un Cliente --"] + client_df['Alias Cliente'].tolist()
+            selected_client_name = st.selectbox("Cliente", client_list, key="cliente_selector")
+            
+            if selected_client_name != "-- Seleccione un Cliente --":
+                client_data = client_df[client_df['Alias Cliente'] == selected_client_name].iloc[0]
+                balance_inicial_usdt = float(client_data['Saldo USDT'])
+                balance_inicial_pesos = float(client_data['Saldo MXN'])
+                
+                metric_col1, metric_col2 = st.columns(2)
+                with metric_col1:
+                    st.metric("Saldo USDT", f"{balance_inicial_usdt:,.2f}")
+                with metric_col2:
+                    st.metric("Saldo Pesos", f"${balance_inicial_pesos:,.2f}")
+                st.caption("Positivo = cliente te debe. Negativo = tú le debes.")
+        else:
+            st.warning("No se pudieron cargar los clientes.")
+    
+    with col_compra:
+        st.subheader("Configuración de Compra")
+        precio_compra_casa = st.number_input("Tasa de Compra (Yo Compro USDT)", value=18.5500, format="%.4f", key="precio_compra_input")
+        mode_vende = st.radio("Modo para 'Cliente Vende / Yo Compro'", ("Pesos -> USDT", "USDT -> Pesos"), horizontal=True, key="mode_vende")
+
+    with col_venta:
+        st.subheader("Configuración de Venta")
+        precio_venta_casa = st.number_input("Tasa de Venta (Yo Vendo USDT)", value=19.4400, format="%.4f", key="precio_venta_input")
+        mode_compra = st.radio("Modo para 'Cliente Compra / Yo Vendo'", ("Pesos -> USDT", "USDT -> Pesos"), horizontal=True, key="mode_compra")
+    
+    st.markdown("---")
+
+    # --- 2. OPERACIONES DE COMPRA/VENTA ---
+    st.header("2. Operaciones de Compra/Venta")
+    if 'num_rows' not in st.session_state: st.session_state.num_rows = 1
+    col1, col2, _ = st.columns([1.3, 1.3, 5])
+    with col1:
+        st.button("➕ Añadir Cálculo", on_click=add_calculo_row, use_container_width=True)
+    with col2:
+        st.button("🔄 Limpiar Cálculos", use_container_width=True, on_click=limpiar_calculos_callback)
+    st.markdown("<br>", unsafe_allow_html=True)
+    all_rows_data = []
+    for i in range(st.session_state.num_rows):
+        row_data = create_calculation_row(i, precio_compra_casa, precio_venta_casa, mode_vende, mode_compra)
+        all_rows_data.append(row_data)
+        if i < st.session_state.num_rows - 1: st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
+    st.markdown("---")
+
+    # --- 3. PAGOS Y RECIBOS ---
+    st.header("3. Pagos y Recibos (Ajustes de Caja)")
+    if 'num_ajustes' not in st.session_state: st.session_state.num_ajustes = 1
+    all_ajustes_data = []
+    for i in range(st.session_state.num_ajustes):
+        ajuste_data = create_ajuste_row(i)
+        all_ajustes_data.append(ajuste_data)
+    col_ajuste1, col_ajuste2, _ = st.columns([1.3, 1.3, 5])
+    with col_ajuste1:
+        st.button("➕ Añadir Ajuste", on_click=add_ajuste_row, use_container_width=True)
+    with col_ajuste2:
+        st.button("🔄 Limpiar Ajustes", use_container_width=True, on_click=limpiar_ajustes_callback)
+    st.markdown("---")
+    
+    # --- 4. TOTALES Y BALANCE ---
+    st.header("4. Totales y Balance Final")
+    pagar_pesos_sum = sum(d['pesos_pagar'] for d in all_rows_data)
+    recibir_usdt_sum = sum(d['usdt_recibir'] for d in all_rows_data)
+    cobrar_pesos_sum = sum(d['pesos_cobrar'] for d in all_rows_data)
+    entregar_usdt_sum = sum(d['usdt_entregar'] for d in all_rows_data)
+    ajuste_neto_pesos = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'MXN') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'MXN')
+    ajuste_neto_usdt = sum(d['pago_monto'] for d in all_ajustes_data if d['pago_moneda'] == 'USDT') - sum(d['recibo_monto'] for d in all_ajustes_data if d['recibo_moneda'] == 'USDT')
+    
+    st.subheader("Totales Consolidados 🧮")
+    total_recibidos_usdt_final = recibir_usdt_sum + (balance_inicial_usdt if balance_inicial_usdt > 0 else 0) + (ajuste_neto_usdt if ajuste_neto_usdt > 0 else 0)
+    total_entregados_usdt_final = entregar_usdt_sum + (abs(balance_inicial_usdt) if balance_inicial_usdt < 0 else 0) + (abs(ajuste_neto_usdt) if ajuste_neto_usdt < 0 else 0)
+    col_total_pagar, _, col_total_cobrar = st.columns([1, 0.2, 1])
+    with col_total_pagar:
+        st.metric(label="TOTAL PESOS PAGADOS (Operaciones)", value=f"${pagar_pesos_sum:,.2f}")
+        st.metric(label="TOTAL USDT RECIBIDOS (Op. + Saldos)", value=f"{total_recibidos_usdt_final:,.2f} USDT")
+    with col_total_cobrar:
+        st.metric(label="TOTAL PESOS COBRADOS (Operaciones)", value=f"${cobrar_pesos_sum:,.2f}")
+        st.metric(label="TOTAL USDT ENTREGADOS (Op. + Saldos)", value=f"{total_entregados_usdt_final:,.2f} USDT")
+        
+    st.subheader("Balance Final de Cierre ⚖️")
+    balance_final_usdt = (recibir_usdt_sum + balance_inicial_usdt + ajuste_neto_usdt) - entregar_usdt_sum
+    balance_final_pesos = (cobrar_pesos_sum + balance_inicial_pesos + ajuste_neto_pesos) - pagar_pesos_sum
+
+    if balance_final_usdt > 0:
+        status_texto = "TE DEBEN PAGAR (Utilidad en USDT)"
+        status_color = "#228B22"
+    elif balance_final_usdt < 0:
+        status_texto = "DEBES PAGAR (Pérdida en USDT)"
+        status_color = "#DC143C"
+    else:
+        status_texto = "BALANCE CERO"
+        status_color = "gray"
+        
+    col_balance_usdt, col_balance_pesos = st.columns(2)
+    with col_balance_usdt:
+        st.metric(label="BALANCE FINAL USDT", value=f"{balance_final_usdt:,.2f} USDT")
+        st.markdown(f"<p style='text-align: center; color: {status_color};'>{status_texto}</p>", unsafe_allow_html=True)
+    with col_balance_pesos:
+        st.metric(label="BALANCE FINAL PESOS", value=f"${balance_final_pesos:,.2f} MXN")
+            
+    st.markdown("---")
+    
     # --- 5. REGISTRAR OPERACIONES ---
     st.header("5. Registrar Operaciones")
     col_save, col_clear_all = st.columns([3,1])
@@ -124,47 +305,26 @@ def main():
             else:
                 data_to_save_batch = []
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for row_data in all_rows_data:
+                    if row_data["pesos_pagar"] > 0 or row_data["usdt_recibir"] > 0:
+                        data_to_save_batch.append([timestamp, selected_client_name, "Compra", row_data["pesos_pagar"], row_data["usdt_recibir"], precio_compra_casa])
+                    if row_data["pesos_cobrar"] > 0 or row_data["usdt_entregar"] > 0:
+                        data_to_save_batch.append([timestamp, selected_client_name, "Venta", row_data["pesos_cobrar"], row_data["usdt_entregar"], precio_venta_casa])
                 
-                with st.spinner(f"Procesando y guardando operaciones..."):
-                    # Procesar filas de cálculo
-                    for i, row_data in enumerate(all_rows_data):
-                        if row_data["pesos_pagar"] > 0 or row_data["usdt_recibir"] > 0:
-                            link_compra = ""
-                            uploader_key = f"uploader_vende_{i}"
-                            if uploader_key in st.session_state and st.session_state[uploader_key] is not None:
-                                link_compra = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            data_to_save_batch.append([timestamp, selected_client_name, "Compra", row_data["pesos_pagar"], row_data["usdt_recibir"], precio_compra_casa, link_compra])
-                        
-                        if row_data["pesos_cobrar"] > 0 or row_data["usdt_entregar"] > 0:
-                            link_venta = ""
-                            uploader_key = f"uploader_compra_{i}"
-                            if uploader_key in st.session_state and st.session_state[uploader_key] is not None:
-                                link_venta = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            data_to_save_batch.append([timestamp, selected_client_name, "Venta", row_data["pesos_cobrar"], row_data["usdt_entregar"], precio_venta_casa, link_venta])
+                for ajuste in all_ajustes_data:
+                    if ajuste['pago_monto'] > 0:
+                        pesos = ajuste['pago_monto'] if ajuste['pago_moneda'] == 'MXN' else ""
+                        usdt = ajuste['pago_monto'] if ajuste['pago_moneda'] == 'USDT' else ""
+                        data_to_save_batch.append([timestamp, selected_client_name, "Pago", pesos, usdt, "N/A"])
+                    if ajuste['recibo_monto'] > 0:
+                        pesos = ajuste['recibo_monto'] if ajuste['recibo_moneda'] == 'MXN' else ""
+                        usdt = ajuste['recibo_monto'] if ajuste['recibo_moneda'] == 'USDT' else ""
+                        data_to_save_batch.append([timestamp, selected_client_name, "Recibo", pesos, usdt, "N/A"])
 
-                    # Procesar filas de ajustes
-                    for i, ajuste in enumerate(all_ajustes_data):
-                        if ajuste['pago_monto'] > 0:
-                            link_pago = ""
-                            uploader_key = f"uploader_pago_{i}"
-                            if uploader_key in st.session_state and st.session_state[uploader_key] is not None:
-                               link_pago = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            pesos = ajuste['pago_monto'] if ajuste['pago_moneda'] == 'MXN' else ""
-                            usdt = ajuste['pago_monto'] if ajuste['pago_moneda'] == 'USDT' else ""
-                            data_to_save_batch.append([timestamp, selected_client_name, "Pago", pesos, usdt, "N/A", link_pago])
-
-                        if ajuste['recibo_monto'] > 0:
-                            link_recibo = ""
-                            uploader_key = f"uploader_recibo_{i}"
-                            if uploader_key in st.session_state and st.session_state[uploader_key] is not None:
-                                link_recibo = upload_to_dropbox(dbx_client, st.session_state[uploader_key], selected_client_name)
-                            pesos = ajuste['recibo_monto'] if ajuste['recibo_moneda'] == 'MXN' else ""
-                            usdt = ajuste['recibo_monto'] if ajuste['recibo_moneda'] == 'USDT' else ""
-                            data_to_save_batch.append([timestamp, selected_client_name, "Recibo", pesos, usdt, "N/A", link_recibo])
-                    
-                    if not data_to_save_batch:
-                        st.warning("No hay operaciones con montos mayores a cero para guardar.")
-                    else:
+                if not data_to_save_batch:
+                    st.warning("No hay operaciones con montos mayores a cero para guardar.")
+                else:
+                    with st.spinner(f"Guardando {len(data_to_save_batch)} operaciones y actualizando saldo para {selected_client_name}..."):
                         try:
                             spreadsheet = gsheet_client.open_by_key(SPREADSHEET_ID)
                             sheet = spreadsheet.worksheet(SHEET_TAB_NAME)
@@ -173,13 +333,13 @@ def main():
                             update_success = update_client_balance(gsheet_client, SPREADSHEET_ID, selected_client_name, balance_final_usdt, balance_final_pesos)
                             
                             if update_success:
-                                st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones y se actualizó el saldo.")
+                                st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones y se actualizó el saldo del cliente.")
                             else:
                                 st.success(f"✅ ¡Éxito! Se guardaron {len(data_to_save_batch)} operaciones.")
                             st.balloons()
+                            
                         except Exception as e:
                             st.error(f"❌ Error al guardar: {e}")
-                            
     with col_clear_all:
         st.button("🔄 Limpiar Todo", use_container_width=True, on_click=limpiar_todo_callback)
 
