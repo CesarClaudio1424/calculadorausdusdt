@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import dropbox
 import os
+import pytz # <-- LIBRERÍA PARA ZONA HORARIA
 
 # --- Importar credenciales (solo para entorno local) ---
 try:
@@ -36,11 +37,12 @@ def connect_to_google_sheets():
 
 @st.cache_resource
 def connect_to_dropbox():
-    """Conecta a Dropbox usando el token."""
+    """Conecta a Dropbox usando el token de Secrets o de config.py."""
     try:
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        token = "sl.u.AF9ertVVuaX6mVIB-fYcUXFxN8TqnTL9qPp6vlwbTZ2iwi-lYvB3vufG4ZnJmF7UJKmg1cKmIi5GDpmBYts7bXC120L7BTprMWsK-EC2lACQ7qn-N-HEXIRu74Mcqk5Idb1Vc7Y0fGl9fhZTlcMuY10savO6T3vWLc2RpT9w0PoCmHKh0iWhVYA8NKvrqAWr-A_QaPDwrBxQR8u3DpRlWpEVBVzS63u8LCI0wqrZiTY9sonh9nDpi88_pijxpvKQAlman0t8pCX8Q-zUZFzhzQMeLege5fGN8_p8LwTR1hHtWQMVc4Z-TwtWhKIrdb9mPLrnAJZTTbl8PKj10dlEdJiNcM-Ji1HdCjMLVraa79v59q15lfED2NHiHj1dAln8hgu5GoDql8EtXaU4ne1ddp0DfwpdKxNM-ye2IkBx2fWvre0MxO8zxSENtvH1Dv0lNsDlLMJo3e7ubRkAvv4pJSjwZia_ksQgoDJRfGKKvz1QM7OgAHyu_gPXz1ZatB3go1mZFAkvCRcRhuQvHbVsz2xX_YdeyrBhKgpmfeqYGSpMtPTLkAqPeLISrtETA2lgsIbC6W1yRD1uTpz1mTGF_m7fkSjmq9KHBmMojGmSmpSqnyELDiMIsN4mZSIcr6hmAshBA-f9B6tWGE9WfsLgOaRDRfwQkg3dRsJezXUzGC7nqSPrfHCxHAQ102vVyDIxHCnjLxcmMtkgWtmXvVkl2ZBxAJecMNBQUUNE-5n5kn1sO0CKT4R4mtMkhPxD-nfBduCukFfwihrZ0ChREFer1ZgT4v_-IFCyekVQwcqyhgigW35YlJ-pSg7gYdpsOqxUQOaCDxbe_SUVS7ZbBzUaoGNcTnkcKq85kkCm3xkcoi1Htk9kP5fbDNsmIXeIKgxpTIOShF6FOl210py5Yu00Gh8wJnkoCcJuOtDtIp7dPRVA-8HsH-ga-OKbMuiSbnegTyujg7bTmpDYUL26Y7jyMxWITlt6t-6s6CJpHxhL00LKbgpyU6k8GQk4XpzRyHMKkmoZvI0p5np6cUnp6FfF6Mn7mOLEqgue04j65jaL9cVi0lg8lO7P72HdK9FVqVwr84qpuCaouPGT3BEr9zlADBqKAu4z5t53kv9rFh7BW1aDxNOQcRwj6ng0KLcpUV9PpxcPodgprSeA57alQTAFmkZ7RUhGrr7ILMeyKG9RJR2Hm_5bpNqmTq8m5gcvo9XaP2XpDc5GIX7irYAFcyFUpJqqji6mVN9k0W37Rt9fXMKnWAzhCJdYaBNR-eVTygYoqETCqU4MuASiMbEcvX_Sn-UbLgGYfLclIGmb8OnVNbFzi3szuKz1CmV5VEooGiaQ6B_7FNobR7BPQDd6lXivsTtGWHEH7ZNGiTYXLK4NEO5lSpswEMpd5sm0yM6m2sFZb1lVOXCUwnB3BKc72Ac7OoeHQng9i7SS2uGeszATI-bRbLKqQTwl9aYLg7jBdCZ4TxeZ-0qrVgHW-poKRZrXNKsnMSQ6FBOVDZJDQCE5Lr2xiQ"
+        from config import DROPBOX_ACCESS_TOKEN
+        token = DROPBOX_ACCESS_TOKEN
     return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
@@ -68,7 +70,8 @@ def get_client_data(_gsheet_client, spreadsheet_id):
 def upload_to_dropbox(dbx_client, file_object, client_name):
     """Sube un archivo a Dropbox y devuelve el link para compartir."""
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        mexico_tz = pytz.timezone("America/Mexico_City")
+        timestamp = datetime.now(mexico_tz).strftime("%Y%m%d_%H%M%S")
         dropbox_path = f"/{client_name.replace(' ', '_')}/{timestamp}_{file_object.name}"
         
         dbx_client.files_upload(file_object.getvalue(), dropbox_path, mode=dropbox.files.WriteMode('overwrite'))
@@ -131,13 +134,13 @@ def get_next_folio_number(_gsheet_client, spreadsheet_id, sheet_tab_name):
         last_folio_date_str = f"{parts[0]}-{parts[1]}-{parts[2]}"
         last_folio_num = int(parts[3])
 
-        today_date_str = datetime.now().strftime("%y-%m-%d")
+        today_date_str = datetime.now(pytz.timezone("America/Mexico_City")).strftime("%y-%m-%d")
 
         if last_folio_date_str == today_date_str:
             return last_folio_num + 1
         else:
             return 1
-    except (ValueError, IndexError): # Captura errores si el folio no tiene el formato esperado
+    except (ValueError, IndexError):
         return 1
     except Exception:
         return 1
@@ -209,11 +212,13 @@ def create_ajuste_row(row_index):
 
 def main():
     st.set_page_config(page_title="Calculadora y Registro", page_icon="🏦", layout="wide")
-    st.markdown("""<style>
+    st.markdown("""
+    <style>
         [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzone"] {display: none;}
         [data-testid="stFileUploader"] section {padding: 0;border: none;}
         [data-testid="stFileUploader"] {padding-top: 28px;}
-    </style>""", unsafe_allow_html=True)
+    </style>
+    """, unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center;'>Calculadora y Registro de Operaciones 🏦</h1>", unsafe_allow_html=True)
     st.markdown("---")
     gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
@@ -344,14 +349,17 @@ def main():
                     st.warning("No hay operaciones con montos mayores a cero para guardar.")
                 else:
                     progress_bar = st.progress(0, text="Iniciando guardado...")
+                    
+                    # --- LÓGICA DE FOLIO Y HORA DE MÉXICO ---
+                    mexico_tz = pytz.timezone("America/Mexico_City")
+                    now_mexico = datetime.now(mexico_tz)
+                    timestamp = now_mexico.strftime("%Y-%m-%d %H:%M:%S")
+                    today_prefix = now_mexico.strftime("%y-%m-%d")
+                    next_folio_num = get_next_folio_number(gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME)
+                    
                     data_to_save_batch = []
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     total_ops = len(operations_to_process)
                     
-                    # OBTENER FOLIO INICIAL
-                    next_folio_num = get_next_folio_number(gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME)
-                    today_prefix = datetime.now().strftime("%y-%m-%d")
-
                     for i, op in enumerate(operations_to_process):
                         current_folio = f"{today_prefix}-{next_folio_num + i:04d}"
                         progress_text = f"Procesando operación {current_folio}..."
