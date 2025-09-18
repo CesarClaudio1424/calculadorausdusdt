@@ -74,7 +74,7 @@ def update_client_balance(_gsheet_client, spreadsheet_id, client_alias, new_usdt
     try:
         spreadsheet = _gsheet_client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("Clientes")
-        cell = worksheet.find(client_alias, in_column=1)
+        cell = worksheet.find(client_alias, in_column=2)
         if cell is None:
             st.warning(f"No se pudo encontrar al cliente '{client_alias}' para actualizar su saldo.")
             return False
