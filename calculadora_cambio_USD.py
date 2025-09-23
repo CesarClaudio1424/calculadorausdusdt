@@ -35,7 +35,7 @@ def connect_to_dropbox():
     try:
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        token = "sl.u.AF9YZrQQNBatqy8AuauhyX1qgoeXAFgUEswNIx2SNskzJHjSxPMBK1-gJmzLqEzNRrrda7qgcetvuv_XNw6-Gsn--ufdKgVaX1y5USzWK2d61xnX02GbzHS36P6WQ68wB_r3AFfiO-yFC1UGZk17WKeD-672Y9dadD4TJqI8-wKnHhmJ9WZ2Y-vgA3s98yCLPSmfJ0aFnQjBZ75EfgZVnLhc6qp227SeCpTyUNK-2B7aaZendrYiFtDaE4oqNHzhl2CR6U3KzxTmsgGIRS85_vWvjCHCSGBkxvUbwt7CuR6tFe3zpo_hxpmm_1KgWcsY_IuKu5UU2yWe5lpZ5KYn3Yef6y0slIFzqN7MsMXCFpa9SWYBD-i9cV8-2R6ai7fU_6CcqHRkYDxP8dvgmHLLZ0QQVCqfT2HSKXS-nrfg-ImdkudM2OZWcmEI1qC8arqxwld5tnTmOj2AO-jS-K53Oe4mIJP-tJX1_sTgLlJE9lQP4uL0Yb49tpb5iSydvaMkrHTU2gZSJHWCNOlxTvcTt1aagvzrESRekyjUZw7-KWToAh45bfwdxueMKD9MglqokPdIhda7aZKb5Ed53iF8_jIzRdS7LcK84nvhEN3Xcov0cLVN3w25oAy33voZIaX0iSOQ2t095dsJZKxKKiI-1fvGLG1WyaAkD1slAE70xNNSSPBs3a37Tr8htz4Xb6Fj5z8lJs6HwZ7JxHyRMlMGkboKq_k1_feSQ9TW1pGGUuQNdgFlNPTEpYB-FTTU7SKzwqnJhixXpUCHcaXlNad6lv9P6Br3Vo4MNkE02zOM97EnL-ARmdY2sr_eS4_d2QH5Nb7CV9UCyK00qBOMAu5iOvRIyD8X4Ao5iI53Q7TXmJ6XlTJOOF77o3Et16bcchdlOYFAY-nmWoOvhpJTabcGq0ufAf_Zm4kLyr8Cbxo1PKfm-NxrYIwd65hcCIXtk5LFHHw-4xrk-OmzF-YYoE-aB3UUGuv9YsJyLbtkMH67N996yW6_vTuKfgVcTqt_hLmiuYJdx0GsDsSSE0e3WxE25-GAC0_-gb-lHjqmJcp3m353Ozef5040gWp0Vp0OY_nBgr1pQPNS4BsL3-au4TqLBpkYSv47EvZWH4zUCRAvdn3tu-ssx_u4TFY2ARwtV79mz2s99AU5fdJeJ1ffrFwpICUDL5AF-Tbghi3QMiwBkLx29e78qOFPlbqmWlgcfwexflyGiAn6TBjpoM64HYaPlHULOH2oMX_ekvZr3KvBRTETGx_sVrT0vT13F7SYEbMOvWiflKGv3QkE7FQVXrtvBOheAYQRXINr8IYMat7T_o2iY17TkgYLTKPzRIu5OaZ_-885vx6f0V5XgPQ1--JHArQmx2ib1-F5zgFn4Xd1JmPFVghzZfLsTQHBhJwtgct2yizQUZLEe1YAHWSC319_T0kw8WWfWbDztrJRU8fHsBQ2Ti1BqNBS674evIJRa4u1Jx8NiK4a_REdt7F9dmR9tkRxfTFDAh1-Cs28ljcTETUBwg"
+        token = "sl.u.AGDf5fvjZMfBSnD3lO6_m3XNfvfeH_nkjYxG9RJ7aRoFJUPskwMZONLAZEkVmOwUVzDyQF_rRA_2XAu4ASnY4DtTvMFXifWb9krSqO8rDG5OhWuHsTvhVs_A28B0-NMY1Uu8DDhXTUHnb_2dhQH1YRoLlmW37-QW4B3wqnlqNZdaRAZbEuP8lr2pdgO_OIqyUq28wA0Ap7uh8_6dUxBW7w5TYdlb2GiLdJGYlGRx__VR8x9eYbvvYEQ_UiRK3B5PLCN0XEgKdpLMu5Md-Z9mmW8JFD0qQqkfNg6Vp5EhJjFeWP2LPgDQ3DPrQ7ZDcGus9gtlQ8Nkr5eMCT6WTg3_Zp4wUh6z0jo_p2K8hADhZL9R4TzzhWLL2LUQhNlNBUid7twtkN5hX89Ne_es2Oko7DO0kZ8HA1Y2UeNICJ9T43Ye80vFC1U1MBVngTcogu02e1rxlbB0aAo2bJTkmNQe38EcP6nqAurffaoDMnUoIJ-_J0pXAd-y97D8RC98lXMQm6u_nfWWbRSsTNybDeo2O5YaMoO2JpEfY-Liq9hfQ2ZmZerLZvOfIQjoacvfvx9wVQ2J9eOODeIm95daEPieLJyC6NmcZKKDyO_K024YK7KK1frZXOKfL20o1Ngk3RTsKeIPbeoJDId3HxU76MOw9CFRiB6pAWlyn_DBMUeOZMwdgoh4Iw1ooKCN3v9UptYzO5PTXHSfFRgImpxLPMmK1KVb89GcVvt-_aXZDUTgoYAhogYcpJYUuDHwtqnC3lFvHNASrtU0oWw_4rW0PqVf2sFNv_8La9lCwBvm2VLPupK0H2Barud4aw8kejVksWQiGyvUzZCGZSqfRPHW0x2cT9TJYOoOfoyQwqoUnqv4FWxSI4QSUijb3sfiK0FmsvUEKDyZ4KvEkC-9fkwUy52qK1gg7Xm15YdaWW6rRzqkDTPorcAfhu5AWHJO73Xz7L4Am3FjEhoCbriiTmlViJgFhn7-Lsl1-WDRoKjTzMLtgtLscf1lHNT5iTqA79GgrBXlXlIA0_KbKsFt8zdsOK-uJRUG12WoJwiRubNvP5aVjpGRHxGb2rizCbwGNwzaeEkDXf8wrpiurTCvQYC-en3x-hgVQGMmZxiHhfmHa8-w85it-P7ed9uxErGn1SM9sF0ULYEg2lhpjL1hV7iZYS88OSf-8CSE-yovWVuBJ8hyqTRHwg-mwlTspUtiVDWAr1OWOo5kxSkrWA4p8nnwCtfhss8omPtapIYXHjRvRQBrQMJvB9TaHRbXUd5eB0mbtvr-3TfDZbicicpmlEeWrbNynUNgpsg4eZXNc_OqeTb4UnQG5J_GF9kfmbyrhSrvYaxcfQpBelTmRQUcnS6DqYuP2HviIGiz3hIqWP3oIIQhrnerP6GxOdb7_6kBvhHp4KvPTey6i43AtZQplkPua3QSxRsEoFrKJUYKJK0cx0GEIykiZBrUkb4Pds-6FhHzy7FC7ofckn4m00ulqH32VcWmyjF1"
     return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
@@ -108,11 +108,10 @@ def get_next_folio_number(_gsheet_client, spreadsheet_id, sheet_tab_name):
 
 # --- FUNCIONES DE LA INTERFAZ ---
 
-# <-- FUNCIÓN REESCRITA para layout compacto y reseteo de archivos
+# Reemplaza tu función create_calculation_row existente con esta:
 def create_calculation_row(row_index, comision_compra, comision_venta, mode_compra, mode_venta):
     col_compra, _, col_venta = st.columns([1, 0.2, 1])
     
-    # Obtenemos el iterador actual para las keys de los uploaders
     key_iter = st.session_state.get('upload_key_iter', 0)
 
     usd_compra_final, usdt_compra_final, input_compra = 0.0, 0.0, 0.0
@@ -121,7 +120,8 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
     with col_compra:
         if row_index == 0: st.subheader("Compra (Tú das USD)")
         
-        input_col, upload_col = st.columns([0.7, 0.3])
+        input_col, result_col, upload_col = st.columns([0.45, 0.3, 0.25])
+
         with input_col:
             label_visibility = "visible" if row_index == 0 else "collapsed"
             if mode_compra == "USD ➔ USDT":
@@ -130,21 +130,28 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
             else:
                 input_label = "Monto en USDT a recibir"
                 input_compra = st.number_input(input_label, min_value=0.0, format="%.2f", step=100.0, key=f"input_compra_{row_index}", label_visibility=label_visibility)
-        with upload_col:
-            st.file_uploader("Comp.", type=["png", "jpg", "jpeg", "pdf"], key=f"uploader_compra_{row_index}_{key_iter}", label_visibility="collapsed")
-
+        
         if mode_compra == "USD ➔ USDT":
             usd_compra_final, usdt_compra_final = input_compra, input_compra * (1 - comision_compra / 100)
-            st.markdown(f"<h6>USDT que recibes:</h6><p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0;'>{usdt_compra_final:,.2f} USDT</p>", unsafe_allow_html=True)
+            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 27px;'>{usdt_compra_final:,.2f} USDT</p>"
         else:
             usdt_compra_final = input_compra
             usd_compra_final = usdt_compra_final / (1 - comision_compra / 100) if comision_compra < 100 else 0
-            st.markdown(f"<h6>USD que das:</h6><p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0;'>{usd_compra_final:,.2f} USD</p>", unsafe_allow_html=True)
+            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 27px;'>{usd_compra_final:,.2f} USD</p>"
+        
+        with result_col:
+            st.markdown(resultado_texto, unsafe_allow_html=True)
+
+        with upload_col:
+            st.file_uploader("Comp.", type=["png", "jpg", "jpeg", "pdf"], key=f"uploader_compra_{row_index}_{key_iter}", label_visibility="collapsed")
 
     with col_venta:
         if row_index == 0: st.subheader("Venta (Tú recibes USD)")
         
-        input_col, upload_col = st.columns([0.7, 0.3])
+        input_col, result_col, upload_col = st.columns([0.45, 0.3, 0.25])
+        
         with input_col:
             label_visibility = "visible" if row_index == 0 else "collapsed"
             if mode_venta == "USD ➔ USDT":
@@ -153,16 +160,22 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
             else:
                 input_label = "Monto en USDT a dar"
                 input_venta = st.number_input(input_label, min_value=0.0, format="%.2f", step=100.0, key=f"input_venta_{row_index}", label_visibility=label_visibility)
-        with upload_col:
-            st.file_uploader("Comp.", type=["png", "jpg", "jpeg", "pdf"], key=f"uploader_venta_{row_index}_{key_iter}", label_visibility="collapsed")
-        
+
         if mode_venta == "USD ➔ USDT":
             usd_venta_final, usdt_venta_final = input_venta, input_venta * (1 - comision_venta / 100)
-            st.markdown(f"<h6>USDT que das:</h6><p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0;'>{usdt_venta_final:,.2f} USDT</p>", unsafe_allow_html=True)
+            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 27px;'>{usdt_venta_final:,.2f} USDT</p>"
         else:
             usdt_venta_final = input_venta
             usd_venta_final = usdt_venta_final / (1 - comision_venta / 100) if comision_venta < 100 else 0
-            st.markdown(f"<h6>USD que recibes:</h6><p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0;'>{usd_venta_final:,.2f} USD</p>", unsafe_allow_html=True)
+            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 27px;'>{usd_venta_final:,.2f} USD</p>"
+
+        with result_col:
+            st.markdown(resultado_texto, unsafe_allow_html=True)
+            
+        with upload_col:
+            st.file_uploader("Comp.", type=["png", "jpg", "jpeg", "pdf"], key=f"uploader_venta_{row_index}_{key_iter}", label_visibility="collapsed")
         
     return {
         "usd_dados_compra": usd_compra_final, "usdt_recibidos_compra": usdt_compra_final,
