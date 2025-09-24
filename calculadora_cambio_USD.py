@@ -35,7 +35,7 @@ def connect_to_dropbox():
     try:
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        token = "sl.u.AGDpL-vfpYzbL6cfLhUVtOC0m3U_m9g2Hd4-Dwa43n3W2i6vnDWds7NmjVedCXwgTvnKa3OmD5WEARxTt3vlLqV_5vd3PAj-xfNnlYafVy_upzphr4BTZQGgJWSVZLc2RZCKXsBIIJncvpVEeEGpwD3wPKNLX7pXEb3Gounl_LmM_aN5mz_Tapnvhzz5KYb17WlOBBMFwHaUW47ZvmKJTL_61mD9y3tntmt_GOMYJVOF7_VocYA9w49XRgiXHBGYqxyYyOdKYoZzwcAiWZ5Mvpp-Mri_SJonrSKlm5ZZQRwb10dR0Qz2ihb-Oc1ZwM-KMkll53HVllC42JAEN5gHssyr-7DBBSzmMcjpqIfeSB_Z0siZ9IAfv9kBdHzMHK1PequgmCKEcLGvkG3jdMzEmU_PE55Srgho1hy0NTYBd-VXcCPoT8mnmuW1UPIJkZcU_aNrmaU9RT10D55GT0WEIK6_Xrp2eY0x9p_vjIeWHiq60vBdtPW3j1l__xWAZFuhrlP8GryiLXtbwjQuloOcfhR5uIg6DvOaS59ZIllV5aAO2rGQQSx8IFjU2eyrj1itsXsXL3Suf1h3yxhZSCQxRNDDvvQyXoBxebDItv3GGNx-hOOHo2s7ShuiEzHkOoj6BU9-7zgsEcdheAWO9f_72jBTCy2ejZhYAhhrSUbDjFNaFKIXoMm8aqx4BRyAlxzVOWX9hk0yxnnxwuyICinw2EbEfurrzhVC8rvovFM0AJ0J7-5c9Rhc87lM4X5hh3Kw4T_bGtCuGK99VHo8AFgZPWcrP7vAQ9U1RpwTbiRQHxf1xAbRJSFqYs_2fUcSlhvSGPlDhAkzNQfwqPs-3WFMu-FKiSf66KpmuGQrSBpZdvWmbYUK7yzxnfiDRWgi0k6AUQuGhE7yKIC3I9qf2bc3iofqyWAKyS_uYwIRlpTbNeQUg2-v2N-GN7J3emrCSLijEFTXCnrNGkaIDHN5N0mCAYBIMpp90zs6MiuNcQ__s3PqsF9QhWZSrrTw61FuT4QVgcJJusIXpRavxCriJOgP9hbuRqYJXb4R48rBy4w3LGjxskjnWgveCBaTtXzdlvwsksq4_VybGrse0dPnqdWVU1Go47StCG4Tj0kYpEqWo6LUhKsDoDd3zuNoNdrZIlKRGSlott77cOQ-yM3EBZLVi7HWLvTQYT9akFqxfZaU7rTo6Lyuw884gXH_QtZ796L5Y1UlSK3WDdSESmSV9PleiAEvfGFFtx_EfXuEfdfBFmvNMqYKld4UI3jREUwD3jvHOPMs0Eixw_q_rzts1YE5vfB3zJO4bGfYA1buAz_VDxUDiFO8ddr38bjZdCfywmDQnJgH0VlUmYx5tJweUklm_dAXgS4nVeVfXTdrj1LkHgLtCazbIpdaxUsSgHITyKKcTdm80I35iK1yCzA7tXPk6gBklIN0n-9Tdb9cmzOOTP4hMAtrAy-oAmoqyWDj1QN_ePoGFYp5-N9z3r-izarjFSe2gwx6x4_gwGLZXdQVxn__kQ"
+        token = "sl.u.AGDLWBU30-ZtX5XEPYXwGewuzhDyMYbdxSqg1xroRGaTaL_KfQd1Kx2Sk9BuuS-alT-n0bmpeMhVOcPlK_nUtf0eNTx_b8dZzgqPr0Sh0Sld4EhXUG5rPHAgeub616UBcwgZTHPidVHUqxr44ORqUW0-o51EtudJHwaxOok_i-vgcEI5-PjVnZ0d24dZ-EyBFyC8aqbut9oIPwfKKmBhMICUEdAHH6fV_5iEQNpekrSdE7KFxW9PbMINlARcMIkalNqXizpT_4j-1pT9togK6ZJ8fWly-BLnjev-cRVsg8Mbk2LWRXz202f26YgsOQQGlfva-m25z5I8cyPJl60e0ejPzybkmv-0eFL4iclHzBhIU-CasgGhprlIFL8R85XF_8eQpR4biECY_DbxSR7RqbRgzK5ulgc2LmcoqXAQc8B2RJqV8GNL8dq3mX6GBp2Z_5UNla9DuvpLzIzToa3HJy79yrW0yM65jKReb--CLvrDeMTFulDUOf-6Z_q76yqtem9aJSSor-3ofUZ_7y8U8HNg_PiJwI-jNShDg6qZavKThz1B7eoT7YpMOI5UcOlquUMPNqcqoK67wCSGx0tUDlbmbQJxnzXGQIQsMcX__XCbTEb2kMWXoPpQaZk6gMKt08Kml_IhKQfm3SLLmLxhPLE1_BNDPTGUzu2h0oVliUYQyCNc-j3YIDyq85RPlyzo1rTp_4D-Z7T2OSl2I7uroOtsoDVs8PPSotV6_zpZkxsq102_sVgtsLwuQ4w4OqItuUcBxe-jD9ZndjcXWAdRazRae5VpIX3bUQHVAsJzqMComtohmx87avtxIjxnkqNPPXzQ5uDjVl2H6eFTaPfyxWJWSeh0FMXqjxBHUwrNIyylYmD-HMQmhRU9vZqbXw22U7Xo7m_xYkawIoQOtXNyZEbvKdTGBDBz6Htb71UL3Qmy-KOfSjXbZsMVM34JN_mC_UZe_AGKYpvGrjlmvmwoOIKpqzJDPhn6G-N4Z956j-Yj4gNe1St7e5u0byrilXmCFFvSyG19TOoDWox7skQk1TupRnF_MksK8AzeVFONA3KXVbM1kXWWc95ovA3IByHTwaE0do1mnexCr2tbPGOwb_ce2jQ73DpqQNIEZ4-ZZmSQ7j5Nd1o5MbmCLbavgeDPSBTa3FB39jVcPzXRvJSQxaIxbS2fVEQ16NtRr2UR8L4sNNMBudVjZHuxXBr4QgJSaYIbyMErQtnaAhHTc7j5-98SWVwBEM2keocybuSddTtJLMRdmbkg0x-wRDccXJdsN5s1QM4pMIckZ02_GnfvgxEHshqQRkxoGToWAIoc5Zn6tqlebXDTFJJuUFwQ9PK1tqZzvbuKI-QfWQYfzl5K0cl4SZlHrRpvK0qoafL_FNQi_2xwTEcpJ8L7Zk6b-G-1hNPkAt0J9QipXQHbDor5dzudztnO-cmQmgYtQLo6gAZSyd7Kno4EXT8B2oQId8nWtSzCYHbGPI55ND8u1gOj5cc9"
         return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
@@ -134,12 +134,12 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
         if mode_compra == "USD ➔ USDT":
             usd_compra_final, usdt_compra_final = input_compra, input_compra * (1 - comision_compra / 100)
             # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
-            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 20px;'>{usdt_compra_final:,.2f} USDT</p>"
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 15px;'>{usdt_compra_final:,.2f} USDT</p>"
         else:
             usdt_compra_final = input_compra
             usd_compra_final = usdt_compra_final / (1 - comision_compra / 100) if comision_compra < 100 else 0
             # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
-            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 20px;'>{usd_compra_final:,.2f} USD</p>"
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 15px;'>{usd_compra_final:,.2f} USD</p>"
         
         with result_col:
             st.markdown(resultado_texto, unsafe_allow_html=True)
