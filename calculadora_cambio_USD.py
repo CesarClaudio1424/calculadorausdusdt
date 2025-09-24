@@ -35,8 +35,8 @@ def connect_to_dropbox():
     try:
         token = st.secrets["DROPBOX_ACCESS_TOKEN"]
     except (FileNotFoundError, KeyError):
-        token = "sl.u.AGDf5fvjZMfBSnD3lO6_m3XNfvfeH_nkjYxG9RJ7aRoFJUPskwMZONLAZEkVmOwUVzDyQF_rRA_2XAu4ASnY4DtTvMFXifWb9krSqO8rDG5OhWuHsTvhVs_A28B0-NMY1Uu8DDhXTUHnb_2dhQH1YRoLlmW37-QW4B3wqnlqNZdaRAZbEuP8lr2pdgO_OIqyUq28wA0Ap7uh8_6dUxBW7w5TYdlb2GiLdJGYlGRx__VR8x9eYbvvYEQ_UiRK3B5PLCN0XEgKdpLMu5Md-Z9mmW8JFD0qQqkfNg6Vp5EhJjFeWP2LPgDQ3DPrQ7ZDcGus9gtlQ8Nkr5eMCT6WTg3_Zp4wUh6z0jo_p2K8hADhZL9R4TzzhWLL2LUQhNlNBUid7twtkN5hX89Ne_es2Oko7DO0kZ8HA1Y2UeNICJ9T43Ye80vFC1U1MBVngTcogu02e1rxlbB0aAo2bJTkmNQe38EcP6nqAurffaoDMnUoIJ-_J0pXAd-y97D8RC98lXMQm6u_nfWWbRSsTNybDeo2O5YaMoO2JpEfY-Liq9hfQ2ZmZerLZvOfIQjoacvfvx9wVQ2J9eOODeIm95daEPieLJyC6NmcZKKDyO_K024YK7KK1frZXOKfL20o1Ngk3RTsKeIPbeoJDId3HxU76MOw9CFRiB6pAWlyn_DBMUeOZMwdgoh4Iw1ooKCN3v9UptYzO5PTXHSfFRgImpxLPMmK1KVb89GcVvt-_aXZDUTgoYAhogYcpJYUuDHwtqnC3lFvHNASrtU0oWw_4rW0PqVf2sFNv_8La9lCwBvm2VLPupK0H2Barud4aw8kejVksWQiGyvUzZCGZSqfRPHW0x2cT9TJYOoOfoyQwqoUnqv4FWxSI4QSUijb3sfiK0FmsvUEKDyZ4KvEkC-9fkwUy52qK1gg7Xm15YdaWW6rRzqkDTPorcAfhu5AWHJO73Xz7L4Am3FjEhoCbriiTmlViJgFhn7-Lsl1-WDRoKjTzMLtgtLscf1lHNT5iTqA79GgrBXlXlIA0_KbKsFt8zdsOK-uJRUG12WoJwiRubNvP5aVjpGRHxGb2rizCbwGNwzaeEkDXf8wrpiurTCvQYC-en3x-hgVQGMmZxiHhfmHa8-w85it-P7ed9uxErGn1SM9sF0ULYEg2lhpjL1hV7iZYS88OSf-8CSE-yovWVuBJ8hyqTRHwg-mwlTspUtiVDWAr1OWOo5kxSkrWA4p8nnwCtfhss8omPtapIYXHjRvRQBrQMJvB9TaHRbXUd5eB0mbtvr-3TfDZbicicpmlEeWrbNynUNgpsg4eZXNc_OqeTb4UnQG5J_GF9kfmbyrhSrvYaxcfQpBelTmRQUcnS6DqYuP2HviIGiz3hIqWP3oIIQhrnerP6GxOdb7_6kBvhHp4KvPTey6i43AtZQplkPua3QSxRsEoFrKJUYKJK0cx0GEIykiZBrUkb4Pds-6FhHzy7FC7ofckn4m00ulqH32VcWmyjF1"
-    return dropbox.Dropbox(token)
+        token = "sl.u.AGDpL-vfpYzbL6cfLhUVtOC0m3U_m9g2Hd4-Dwa43n3W2i6vnDWds7NmjVedCXwgTvnKa3OmD5WEARxTt3vlLqV_5vd3PAj-xfNnlYafVy_upzphr4BTZQGgJWSVZLc2RZCKXsBIIJncvpVEeEGpwD3wPKNLX7pXEb3Gounl_LmM_aN5mz_Tapnvhzz5KYb17WlOBBMFwHaUW47ZvmKJTL_61mD9y3tntmt_GOMYJVOF7_VocYA9w49XRgiXHBGYqxyYyOdKYoZzwcAiWZ5Mvpp-Mri_SJonrSKlm5ZZQRwb10dR0Qz2ihb-Oc1ZwM-KMkll53HVllC42JAEN5gHssyr-7DBBSzmMcjpqIfeSB_Z0siZ9IAfv9kBdHzMHK1PequgmCKEcLGvkG3jdMzEmU_PE55Srgho1hy0NTYBd-VXcCPoT8mnmuW1UPIJkZcU_aNrmaU9RT10D55GT0WEIK6_Xrp2eY0x9p_vjIeWHiq60vBdtPW3j1l__xWAZFuhrlP8GryiLXtbwjQuloOcfhR5uIg6DvOaS59ZIllV5aAO2rGQQSx8IFjU2eyrj1itsXsXL3Suf1h3yxhZSCQxRNDDvvQyXoBxebDItv3GGNx-hOOHo2s7ShuiEzHkOoj6BU9-7zgsEcdheAWO9f_72jBTCy2ejZhYAhhrSUbDjFNaFKIXoMm8aqx4BRyAlxzVOWX9hk0yxnnxwuyICinw2EbEfurrzhVC8rvovFM0AJ0J7-5c9Rhc87lM4X5hh3Kw4T_bGtCuGK99VHo8AFgZPWcrP7vAQ9U1RpwTbiRQHxf1xAbRJSFqYs_2fUcSlhvSGPlDhAkzNQfwqPs-3WFMu-FKiSf66KpmuGQrSBpZdvWmbYUK7yzxnfiDRWgi0k6AUQuGhE7yKIC3I9qf2bc3iofqyWAKyS_uYwIRlpTbNeQUg2-v2N-GN7J3emrCSLijEFTXCnrNGkaIDHN5N0mCAYBIMpp90zs6MiuNcQ__s3PqsF9QhWZSrrTw61FuT4QVgcJJusIXpRavxCriJOgP9hbuRqYJXb4R48rBy4w3LGjxskjnWgveCBaTtXzdlvwsksq4_VybGrse0dPnqdWVU1Go47StCG4Tj0kYpEqWo6LUhKsDoDd3zuNoNdrZIlKRGSlott77cOQ-yM3EBZLVi7HWLvTQYT9akFqxfZaU7rTo6Lyuw884gXH_QtZ796L5Y1UlSK3WDdSESmSV9PleiAEvfGFFtx_EfXuEfdfBFmvNMqYKld4UI3jREUwD3jvHOPMs0Eixw_q_rzts1YE5vfB3zJO4bGfYA1buAz_VDxUDiFO8ddr38bjZdCfywmDQnJgH0VlUmYx5tJweUklm_dAXgS4nVeVfXTdrj1LkHgLtCazbIpdaxUsSgHITyKKcTdm80I35iK1yCzA7tXPk6gBklIN0n-9Tdb9cmzOOTP4hMAtrAy-oAmoqyWDj1QN_ePoGFYp5-N9z3r-izarjFSe2gwx6x4_gwGLZXdQVxn__kQ"
+        return dropbox.Dropbox(token)
 
 @st.cache_data(ttl=60)
 def get_client_data(_gsheet_client, spreadsheet_id):
@@ -134,12 +134,12 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
         if mode_compra == "USD ➔ USDT":
             usd_compra_final, usdt_compra_final = input_compra, input_compra * (1 - comision_compra / 100)
             # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
-            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 27px;'>{usdt_compra_final:,.2f} USDT</p>"
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 20px;'>{usdt_compra_final:,.2f} USDT</p>"
         else:
             usdt_compra_final = input_compra
             usd_compra_final = usdt_compra_final / (1 - comision_compra / 100) if comision_compra < 100 else 0
             # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
-            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 27px;'>{usd_compra_final:,.2f} USD</p>"
+            resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 20px;'>{usd_compra_final:,.2f} USD</p>"
         
         with result_col:
             st.markdown(resultado_texto, unsafe_allow_html=True)
