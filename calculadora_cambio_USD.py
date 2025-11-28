@@ -23,20 +23,22 @@ def connect_to_google_sheets():
         spreadsheet_id = st.secrets["SPREADSHEET_ID"]
         sheet_tab_name = st.secrets["SHEET_TAB_NAME"]
     except (FileNotFoundError, KeyError):
-        creds_dict = GOOGLE_CREDS
-        spreadsheet_id = SPREADSHEET_ID
-        sheet_tab_name = SHEET_TAB_NAME
+        try:
+            creds_dict = GOOGLE_CREDS
+            spreadsheet_id = SPREADSHEET_ID
+            sheet_tab_name = SHEET_TAB_NAME
+        except NameError:
+            st.error("No se encontraron credenciales de Google Sheets.")
+            st.stop()
+            
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     client = gspread.authorize(creds)
     return client, spreadsheet_id, sheet_tab_name
 
+# --- MODIFICADO: Ahora recibe el token como parámetro ---
 @st.cache_resource
-def connect_to_dropbox():
-    try:
-        token = st.secrets["DROPBOX_ACCESS_TOKEN"]
-    except (FileNotFoundError, KeyError):
-        token = "sl.u.AGI1HDQJGjD_g1It9TePyA75aHPHBaEH9ZsWYH14TRzUJO7o8K0n5fCGS66Wwa1BQZ2-ZHD1_fmIRMvbLNjLdALa35p7ZRZk6ga7rftCV325nudWRcyWy1P5Jds8apKinbi7hYDaU5LGLSp2BW_cKdqF1bOxLMU_VDDYgrlgZ6GhrYbUtVDW4lD_T7g1xOfrAy3NrySP0BEPNcCfGUdrfOysajRWfElJ4i3StOTXFtPCsLt4-z1xA95rT4_Y4sBPi16RoMUJWDq5qvFoEPt8C0aVfSQ6gJGI9K6W54yKGsDEXbv6X_Re8Tm48jBYu8ZOHmANV2uz60zOET1IkoouGsIKNps16djhV2cJRUOqQE07IO79MXbd4uucDkpeN3VGfgveQkw5P4uR9RCCpp0WWL35F-wATgXSpve4EFek6PPFri1JoWwvC0EMd0HX4MqFQOottgfTCUHhvWsBkuX3ncnPz6E-fKI9Bztehnl213MzgMU7-4QteKmrpGMFG2xSqTARNYYoxkJA_FKogqdpdNktdglYLrykIAn3j-KdWK5t850HsM0TqceH7mRdxy0MMqCikAbkLJAHPJ_bCKSzVeNx5WIdNFb81bhgBW0o1fxlGuX1lMaSTtSPNGH2oCfNITWMuq6-OiHL-HlvrGYxvqfA46h7E8ZE3PZavV9x36VZ4SILLcXHMEiCDxmdVsDR4anZ9CGEDXE-wzfuVyUW9uzkwFY8W6sWepgov77voH-c2Pdf4_HbTzwyq4eknQIemmvf3bEJgqkAa-iBLvC019R7AzJh0vxTXy-NAoCkfP0dtT2pUl1V0cMVjdkmyKfyb7ZIUk6J-vJeOq5jYC8ZsSn7MbvqwooAkAdrGZ5IarfwdEFDBRAd_XQIYvYRRY89JlF-j9_inLvst4FYrmD57i83fGBehGRYv_1lZmsL2s5kwgJdXuWRanRhF99gQTLhFHUeyPhg4GI9p7l0chuHGpTXug-VZRHTOEUX4eoeePRNRuWWhQ_6Ow4jU_odwAfIZ5VObOSjrMQjq1o1z7AVroA6F_co6-6jVrrJyx4-qwvhb9_PlIPzkl9OCKtTQfNXv7jwZVrEpiBnFFsakgUw41crK_TbPQdHktwMZfr0_yy8gCTtu0FOKJ3k2qIfgduPYrQMh5xHkWSy1LykIkTf3m3nS1Wf6_cPFtOgpjKqY_UBgcvG-0FY-Pl4fHho-i8Zci2XtA5e4Jg0bUDKjS6HIXC_GjRRILft5s-NQIczR0SmqwQcJl0mi3lzowbljA98UgHwnSMSEoXNOtdtH8zwqmK4ydTa2vmxw2qvE8cntgSYZRVTnJsSnJp2wlNjT0qwtoySB3dgIEi2J66JXmc5CXd3u-yMxbIx_Yi7z1ATyaeIBSCwjU_IakphCmHmI_Y8cwveWOQ33HLcaY9zzj5uJEz-CYfRmXadtgQOk8UBc9jcd9b09lAoAmKv9bwtw63uxfSlUdYULLb3A2Ocxz263c9y"
-        return dropbox.Dropbox(token)
+def connect_to_dropbox(api_token):
+    return dropbox.Dropbox(api_token)
 
 @st.cache_data(ttl=60)
 def get_client_data(_gsheet_client, spreadsheet_id):
@@ -46,8 +48,10 @@ def get_client_data(_gsheet_client, spreadsheet_id):
         data = worksheet.get_all_records()
         if not data: return pd.DataFrame(columns=['Alias Cliente', 'Saldo USDT'])
         df = pd.DataFrame(data)
-        df['Saldo USDT'] = df['Saldo USDT'].astype(str).str.replace(r'[$,]', '', regex=True)
-        df['Saldo USDT'] = pd.to_numeric(df['Saldo USDT'], errors='coerce').fillna(0)
+        # Limpieza de datos
+        if 'Saldo USDT' in df.columns:
+            df['Saldo USDT'] = df['Saldo USDT'].astype(str).str.replace(r'[$,]', '', regex=True)
+            df['Saldo USDT'] = pd.to_numeric(df['Saldo USDT'], errors='coerce').fillna(0)
         return df
     except gspread.exceptions.WorksheetNotFound:
         st.error("Error: No se encontró la hoja 'Clientes' en tu Google Sheet.")
@@ -108,7 +112,6 @@ def get_next_folio_number(_gsheet_client, spreadsheet_id, sheet_tab_name):
 
 # --- FUNCIONES DE LA INTERFAZ ---
 
-# Reemplaza tu función create_calculation_row existente con esta:
 def create_calculation_row(row_index, comision_compra, comision_venta, mode_compra, mode_venta):
     col_compra, _, col_venta = st.columns([1, 0.2, 1])
     
@@ -133,12 +136,10 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
         
         if mode_compra == "USD ➔ USDT":
             usd_compra_final, usdt_compra_final = input_compra, input_compra * (1 - comision_compra / 100)
-            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
             resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 15px;'>{usdt_compra_final:,.2f} USDT</p>"
         else:
             usdt_compra_final = input_compra
             usd_compra_final = usdt_compra_final / (1 - comision_compra / 100) if comision_compra < 100 else 0
-            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
             resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 15px;'>{usd_compra_final:,.2f} USD</p>"
         
         with result_col:
@@ -163,12 +164,10 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
 
         if mode_venta == "USD ➔ USDT":
             usd_venta_final, usdt_venta_final = input_venta, input_venta * (1 - comision_venta / 100)
-            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
             resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #DC143C; margin: 0; padding-top: 27px;'>{usdt_venta_final:,.2f} USDT</p>"
         else:
             usdt_venta_final = input_venta
             usd_venta_final = usdt_venta_final / (1 - comision_venta / 100) if comision_venta < 100 else 0
-            # --- CAMBIO AQUÍ: Se usa padding-top para forzar la alineación ---
             resultado_texto = f"<p style='font-size: 28px; font-weight: bold; color: #228B22; margin: 0; padding-top: 27px;'>{usd_venta_final:,.2f} USD</p>"
 
         with result_col:
@@ -182,7 +181,6 @@ def create_calculation_row(row_index, comision_compra, comision_venta, mode_comp
         "usd_recibidos_venta": usd_venta_final, "usdt_dados_venta": usdt_venta_final,
     }
 
-# <-- FUNCIÓN REESCRITA para layout compacto y reseteo de archivos
 def create_ajuste_row(row_index):
     col_pago, _, col_recibo = st.columns([1, 0.2, 1])
     key_iter = st.session_state.get('upload_key_iter', 0)
@@ -207,6 +205,20 @@ def create_ajuste_row(row_index):
 
 def main():
     st.set_page_config(page_title="Calculadora USD/USDT", page_icon="🏦", layout="wide")
+    
+    # --- NUEVO: INPUT DE TOKEN DROPBOX EN SIDEBAR ---
+    st.sidebar.header("🔐 Configuración Dropbox")
+    manual_token = st.sidebar.text_input("Ingresa tu Token de Dropbox:", type="password", help="Pega aquí tu token de acceso generado en Dropbox Developers.")
+    
+    # Lógica para determinar el token: Prioridad Input > Secrets > None
+    final_token = manual_token
+    if not final_token:
+        # Si no hay input manual, intenta buscar en secrets
+        try:
+            final_token = st.secrets["DROPBOX_ACCESS_TOKEN"]
+        except (FileNotFoundError, KeyError):
+            pass
+
     st.markdown("""
     <style>
         [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzone"] {display: none;}
@@ -217,8 +229,22 @@ def main():
     """, unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center;'>Calculadora USD-USDT 🏦</h1>", unsafe_allow_html=True)
     st.markdown("---")
+
+    # --- VERIFICACIÓN DE TOKEN ANTES DE SEGUIR ---
+    if not final_token:
+        st.warning("⚠️ No se ha detectado un token de Dropbox. Por favor, ingrésalo en la barra lateral izquierda para continuar.")
+        st.stop()
+
     gsheet_client, SPREADSHEET_ID, SHEET_TAB_NAME = connect_to_google_sheets()
-    dbx_client = connect_to_dropbox()
+    
+    # Conexión usando el token determinado
+    try:
+        dbx_client = connect_to_dropbox(final_token)
+        # Verificación simple de conexión
+        dbx_client.users_get_current_account()
+    except Exception:
+        st.error("❌ El token de Dropbox es inválido. Por favor revísalo en la barra lateral.")
+        st.stop()
 
     # Se inicializa un iterador de clave para el reseteo de los uploaders
     if 'upload_key_iter' not in st.session_state:
@@ -227,7 +253,6 @@ def main():
     def add_calculo_row(): st.session_state.num_rows = st.session_state.get('num_rows', 1) + 1
     def add_ajuste_row(): st.session_state.num_ajustes = st.session_state.get('num_ajustes', 1) + 1
     
-    # <-- CALLBACKS DE LIMPIEZA SIMPLIFICADOS ---
     def limpiar_calculos_callback():
         for i in range(st.session_state.get('num_rows', 1)):
             if f"input_compra_{i}" in st.session_state:
@@ -235,17 +260,16 @@ def main():
             if f"input_venta_{i}" in st.session_state:
                 st.session_state[f"input_venta_{i}"] = 0.0
         st.session_state.num_rows = 1
-        st.session_state.upload_key_iter += 1 # Incrementar el iterador fuerza el reseteo de los uploaders
+        st.session_state.upload_key_iter += 1 
     
     def limpiar_ajustes_callback():
-            # Se reintroduce el código para limpiar los campos de texto
         for i in range(st.session_state.get('num_ajustes', 1)):
             if f"pago_monto_{i}" in st.session_state:
                 st.session_state[f"pago_monto_{i}"] = 0.0
             if f"recibo_monto_{i}" in st.session_state:
                 st.session_state[f"recibo_monto_{i}"] = 0.0
         st.session_state.num_ajustes = 1
-        st.session_state.upload_key_iter += 1 # Incrementar el iterador fuerza el reseteo de los uploaders
+        st.session_state.upload_key_iter += 1 
 
     def limpiar_todo_callback():
         limpiar_calculos_callback()
@@ -253,9 +277,8 @@ def main():
         st.session_state.num_rows = 1
         st.session_state.num_ajustes = 1
         if "cliente_selector" in st.session_state: st.session_state.cliente_selector = "-- Seleccione un Cliente --"
-        st.session_state.upload_key_iter += 1 # Reseteo global de todos los uploaders
+        st.session_state.upload_key_iter += 1 
 
-    # El resto del código `main` sigue aquí...
     # --- SECCIÓN 1: CONFIGURACIÓN ---
     st.header("1. Configuración de Operación")
     col_cliente, col_compra, col_venta = st.columns(3)
@@ -328,7 +351,6 @@ def main():
                 st.error("Por favor, seleccione un cliente antes de guardar.")
             else:
                 operations_to_process = []
-                # Re-evaluar los montos en el momento del click para asegurar datos frescos
                 current_key_iter = st.session_state.get('upload_key_iter', 0)
                 for i in range(st.session_state.get('num_rows', 1)):
                     if st.session_state.get(f"input_compra_{i}", 0) > 0:
@@ -359,7 +381,6 @@ def main():
                         progress_bar.progress((i + 1) / (total_ops + 2), text=progress_text)
                         link, file_to_upload = "", None
 
-                        # --- CAMBIO IMPORTANTE: Se obtiene el archivo usando la key dinámica ---
                         if op['type'] == 'Compra':
                             file_to_upload = st.session_state.get(f"uploader_compra_{op['index']}_{current_key_iter}")
                             row_data = all_rows_data[op['index']]
